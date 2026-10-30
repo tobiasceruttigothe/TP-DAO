@@ -99,6 +99,32 @@ classDiagram
 
 La respuesta siempre tiene la forma `{"detail": "mensaje"}`.
 
+## Paginación
+
+Todos los listados están paginados, salvo `GET /sedes` (son pocas y se usan para completar
+listas desplegables). Se piden con `?pagina=1&tamanio=20` (tamaño máximo 100) y responden:
+
+```json
+{
+  "items": [ ... ],
+  "total": 57,
+  "pagina": 2,
+  "tamanio": 20,
+  "paginas": 3
+}
+```
+
+`BaseRepository.paginar` resuelve el conteo y el corte para cualquier consulta, así cada
+repositorio solo arma su consulta con filtros. Los listados tienen un orden estable (desempatan
+por id) para que un elemento no aparezca en dos páginas.
+
+## CORS
+
+El navegador bloquea las llamadas de una página a un servidor de otro origen (otro dominio o
+puerto) salvo que el servidor las autorice. Como el frontend corre en su propio servidor, la API
+habilita los orígenes listados en `CORS_ORIGENES`. Por defecto son los puertos habituales de
+desarrollo: 3000 (React), 5173 (Vite) y 4200 (Angular).
+
 ## Sesión y transacciones
 
 - `app/database.py` crea el `engine` una sola vez y define `get_db()`, que abre una sesión por
@@ -128,6 +154,7 @@ Todo se configura por variables de entorno (`app/config.py`, ejemplo en `.env.ex
 | Variable | Por defecto | Uso |
 |---|---|---|
 | `DATABASE_URL` | Postgres local | Conexión de la API |
+| `CORS_ORIGENES` | `localhost` en 3000, 5173 y 4200 | Orígenes del frontend habilitados, separados por coma |
 | `TEST_DATABASE_URL` | `biblioteca_test` local | Conexión de los tests |
 | `DIAS_PRESTAMO` | 14 | Plazo del préstamo |
 | `MAX_PRESTAMOS_ACTIVOS` | 3 | Préstamos en curso por socio |
@@ -160,7 +187,9 @@ flowchart LR
 | `test_prestamos.py` | Préstamos locales e inter-sede, remitos, devoluciones y validaciones | Sí |
 | `test_reservas.py` | Reservas, orden de llegada, vencimientos | Sí |
 | `test_reportes.py` | Los seis reportes con datos armados | Sí |
-| `test_api.py` | Endpoints y códigos HTTP | Sí |
+| `test_incidencias.py` | Revisión de recepción: daño, destrucción, extravío y listado de incidencias | Sí |
+| `test_historial.py` | Historial de lecturas del socio | Sí |
+| `test_api.py` | Endpoints, códigos HTTP, paginación y CORS | Sí |
 
 Cada test corre dentro de una transacción que se revierte al terminar (`tests/conftest.py`), así
 los tests no dependen entre sí ni del orden en que se ejecutan. GitHub Actions corre la suite y

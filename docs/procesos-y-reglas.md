@@ -81,9 +81,8 @@ sequenceDiagram
   - **Cancelar** (solo el de ida, antes de despachar): se cancela el préstamo y el ejemplar
     vuelve a estar disponible.
   - **Extraviar** (solo despachado): el ejemplar queda EXTRAVIADO y, si era el de ida, el préstamo
-    se cancela.
-  - **Recibir con daño**: se registra el estado físico de llegada. Cuenta como incidencia en los
-    reportes.
+    se cancela. Se registra una incidencia.
+  - **Recibir con daño o destruido**: ver [revisión del estado de recepción](#revisión-del-estado-de-recepción).
 - Tests: `test_recorrido_completo`, `test_cancelar_remito_libera_ejemplar`,
   `test_extravio_cancela_prestamo`, `test_remito_de_retorno_no_se_cancela`,
   `test_flujo_interbibliotecario_por_api`
@@ -122,13 +121,15 @@ flowchart TD
 ### 8. Devoluciones y estado físico
 
 `POST /prestamos/{id}/devolucion` con el estado físico (BUENO, REGULAR, DANADO), observaciones y
-opcionalmente la fecha (por defecto, hoy).
+opcionalmente la fecha (por defecto, hoy). También se acepta DESTRUIDO.
 
 - Lógica: `PrestamoService.devolver`
 - Se calcula la multa si hubo atraso (patrón Strategy) y queda guardada en el préstamo.
 - Préstamo local: el ejemplar vuelve a DISPONIBLE (o a EN_REPARACION si volvió dañado) y se
   ofrece a la primera reserva pendiente.
 - Préstamo interbibliotecario: se genera el remito de retorno hacia la sede de origen.
+- Si se devuelve DESTRUIDO, el ejemplar se da de baja y no se genera remito de retorno: no tiene
+  sentido enviar de vuelta un ejemplar inservible.
 - Tests: `test_devolucion_en_termino_sin_multa`, `test_devolucion_con_atraso_genera_multa`,
   `test_devolucion_danado_pasa_a_reparacion`, `test_no_se_devuelve_dos_veces`
 
@@ -156,6 +157,7 @@ se agregaron:
 | El remito de retorno se despacha aunque una sede esté de baja | Si se bloqueara, el ejemplar quedaría varado en otra sede | - |
 | Solo se cancela el remito de ida | El de retorno siempre tiene que completarse | `test_remito_de_retorno_no_se_cancela` |
 | Un ejemplar dañado no circula hasta repararlo | No prestar material en mal estado | `test_devolucion_danado_pasa_a_reparacion` |
+| Un ejemplar destruido se da de baja; si llega destruido en el envío de ida, se cancela el préstamo | El socio no puede retirar un ejemplar inservible | `test_recepcion_destruido_cancela_prestamo_y_da_de_baja`, `test_devolucion_destruido_no_genera_retorno` |
 | Una sola reserva activa por socio y libro | Evitar reservas duplicadas | `test_no_duplica_reserva_activa` |
 | No se reserva un libro que la sede no tiene | La reserva nunca podría cumplirse | `test_no_reserva_libro_sin_ejemplares_en_la_sede` |
 
@@ -170,10 +172,42 @@ La consigna pide al menos cuatro reportes no triviales. Se implementaron los sei
 | `GET /reportes/vencidos-multas?fecha=` | Por socio: préstamos vencidos con días de atraso, multas cobradas, multas pendientes estimadas y total | Calcula multas a una fecha con la estrategia vigente y agrupa por socio |
 | `GET /reportes/libros-mas-solicitados?desde=&hasta=&limite=` | Ranking de libros en préstamos inter-sede | Agregación con `GROUP BY` y filtro por período |
 | `GET /reportes/disponibilidad-sedes` | Por sede: títulos distintos, ejemplares por estado y porcentaje disponible | Agregación por sede y estado; incluye sedes sin ejemplares |
-| `GET /reportes/envios?desde=&hasta=` | Recibidos sin problemas, con daño, extraviados, cancelados, en curso; tasa de éxito e incidencias | Clasifica remitos por resultado; los cancelados no cuentan para la tasa porque no viajaron |
+| `GET /reportes/envios?desde=&hasta=` | Recibidos sin problemas, con daño, destruidos, extraviados, cancelados, en curso; tasa de éxito e incidencias | Clasifica remitos por resultado; los cancelados no cuentan para la tasa porque no viajaron |
 | `GET /reportes/movimientos-sedes?desde=&hasta=` | Por par origen-destino: envíos, recibidos, incidencias y tiempo promedio de tránsito | Agrupa por ruta y promedia `fecha_recepcion - fecha_despacho` |
 
 ## Procesos opcionales
 
-No se implementaron por ahora. El que más fácil se agregaría es el **historial de lecturas**: los
-datos ya están (préstamos devueltos del socio) y solo falta un endpoint `GET /socios/{id}/historial`.
+De los cinco opcionales de la consigna se implementaron dos.
+
+### Historial de lecturas
+
+`GET /socios/{id}/historial` devuelve los préstamos ya devueltos del socio, del más reciente al
+más antiguo, con título, autor, tipo de préstamo, sede donde lo retiró, fechas, días de atraso y
+multa. Está paginado.
+
+- Lógica: `PrestamoService.historial_de_socio` y `PrestamoRepository.historial_de_socio`
+- No requirió cambios en el modelo: el historial son los préstamos en estado DEVUELTO.
+- Tests: `tests/test_historial.py`, `test_historial_por_api`
+
+### Revisión del estado de recepción
+
+Al recibir un remito (`POST /remitos/{id}/recibir`) se registra el resultado de revisar el
+ejemplar. Junto con el extravío, cubre los tres casos que nombra la consigna: extravío, daño y
+destrucción.
+
+| Resultado | Incidencia | Ejemplar | Préstamo (remito de ida) |
+|---|---|---|---|
+| BUENO / REGULAR | - | PRESTADO (ida) o DISPONIBLE (retorno) | ACTIVO |
+| DANADO | DANIO | PRESTADO (ida) o EN_REPARACION (retorno) | ACTIVO: el socio puede usarlo igual |
+| DESTRUIDO | DESTRUCCION | BAJA | CANCELADO |
+| Extraviado (`POST /remitos/{id}/extraviar`) | EXTRAVIO | EXTRAVIADO | CANCELADO |
+
+- Las incidencias se consultan en `GET /incidencias?tipo=&sede_id=&desde=&hasta=` (paginado) y
+  dentro del detalle de cada remito (`GET /remitos/{id}`).
+- Lógica: `RemitoService.recibir` y `RemitoService.marcar_extraviado`
+- Tests: `tests/test_incidencias.py`
+
+### No implementados
+
+Envío de notificaciones, recomendaciones e inventario con códigos (aunque cada ejemplar ya tiene
+un código de inventario único, no hay un proceso de inventario propiamente dicho).

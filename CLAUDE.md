@@ -25,6 +25,7 @@ alembic upgrade head
   traduce a códigos HTTP. No usar `HTTPException` dentro de los servicios.
 - Cualquier cambio de modelo va acompañado de su migración de Alembic.
 - Cada regla de negocio nueva lleva su test.
+- Los listados nuevos se paginan con `BaseRepository.paginar` y responden `Pagina[...]`.
 - Documentar endpoints con un docstring corto (aparece en Swagger), sin comentarios de más.
 - Si un cambio afecta el modelo, un patrón, un proceso o una regla, actualizar el documento
   correspondiente en `docs/`. Los diagramas son Mermaid (GitHub los dibuja).
@@ -38,10 +39,9 @@ alembic upgrade head
 
 ## Pendientes / ideas
 
-- Historial de lecturas del socio (proceso opcional): sale casi directo de los préstamos
-  devueltos de un socio; agregar `GET /socios/{id}/historial`.
-- Otros opcionales de la consigna no encarados: notificaciones, recomendaciones,
-  revisión de estado de recepción (extravío/daño/destrucción) como proceso propio.
+- Opcionales de la consigna no encarados: notificaciones, recomendaciones, inventario con códigos.
 - Las multas se registran pero no hay circuito de pago; podría inhabilitarse automáticamente
   al socio con multas impagas.
 - `procesar-vencidas` de reservas se dispara a mano; podría correr al iniciar el día.
+- El número de remito se calcula como el último id + 1: dos remitos creados al mismo tiempo
+  pueden chocar. Usar una secuencia de la base.

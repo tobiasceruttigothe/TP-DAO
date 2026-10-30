@@ -36,7 +36,9 @@ docker compose up --build
 ```
 
 Levanta Postgres y la API en `http://localhost:8000`. Al iniciar, el contenedor aplica las
-migraciones pendientes. Para cargar datos de ejemplo:
+migraciones pendientes. Para cargar datos de ejemplo (sedes, socios, catálogo y un escenario con
+préstamos devueltos, activos y vencidos, multas, envíos en distintos estados, incidencias y
+reservas, para que los reportes muestren información):
 
 ```bash
 docker compose exec api python -m app.seed
@@ -179,6 +181,8 @@ Se evaluó usar Singleton para la conexión, pero no se aplicó:
 - Las reservas se atienden por orden de llegada. Cuando se libera un ejemplar se aparta para la
   primera reserva pendiente, que tiene 3 días para retirarlo.
 - Un ejemplar devuelto o recibido dañado pasa a EN_REPARACION y no circula hasta marcarlo reparado.
+  Si llega o se devuelve destruido se da de baja.
+- Los extravíos, daños y destrucciones en envíos quedan registrados como incidencias.
 
 Los valores numéricos se configuran por variables de entorno (ver `.env.example`).
 
@@ -190,6 +194,7 @@ Los valores numéricos se configuran por variables de entorno (ver `.env.example
 | GET/PUT | `/sedes/{id}` | Ver / modificar sede |
 | PATCH | `/sedes/{id}/baja`, `/sedes/{id}/alta` | Dar de baja / reactivar |
 | GET/POST | `/socios` | Listar (búsqueda con `q`) / crear socios |
+| GET | `/socios/{id}/historial` | Historial de lecturas del socio |
 | GET/PUT | `/socios/{id}` | Ver / modificar socio |
 | PATCH | `/socios/{id}/inhabilitar`, `/socios/{id}/habilitar` | Cambiar habilitación |
 | GET/POST | `/libros` | Buscar / crear libros |
@@ -203,6 +208,7 @@ Los valores numéricos se configuran por variables de entorno (ver `.env.example
 | POST | `/prestamos/{id}/devolucion` | Registrar devolución |
 | GET | `/remitos`, `/remitos/{id}`, `/remitos/numero/{numero}` | Consultar remitos con su historial |
 | POST | `/remitos/{id}/empaquetar` `/despachar` `/recibir` `/extraviar` `/cancelar` | Transiciones |
+| GET | `/incidencias` | Daños, destrucciones y extravíos de envíos |
 | GET/POST | `/reservas` | Listar / crear reservas |
 | GET | `/reservas/{id}` | Ver reserva |
 | POST | `/reservas/{id}/cancelar` | Cancelar reserva |
@@ -221,6 +227,10 @@ Los valores numéricos se configuran por variables de entorno (ver `.env.example
 
 Códigos de error: `400` regla de negocio, `404` no encontrado, `409` duplicado,
 `422` datos de entrada inválidos.
+
+Los listados (salvo `/sedes`) están paginados con `?pagina=&tamanio=` y devuelven
+`{items, total, pagina, tamanio, paginas}`. La API acepta llamadas del frontend desde los orígenes
+configurados en `CORS_ORIGENES` (ver `.env.example`).
 
 ## Tests
 

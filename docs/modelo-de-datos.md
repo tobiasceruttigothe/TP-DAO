@@ -16,6 +16,7 @@ erDiagram
     EJEMPLAR ||--o{ REMITO : "viaja en"
     SEDE ||--o{ REMITO : "origen / destino"
     REMITO ||--|{ MOVIMIENTO_REMITO : "registra"
+    REMITO ||--o{ INCIDENCIA : "puede tener"
     SOCIO ||--o{ RESERVA : "hace"
     LIBRO ||--o{ RESERVA : "es reservado"
     SEDE ||--o{ RESERVA : "se retira en"
@@ -96,6 +97,13 @@ erDiagram
         datetime fecha
         string observacion
     }
+    INCIDENCIA {
+        int id PK
+        int remito_id FK
+        string tipo
+        string descripcion
+        datetime fecha
+    }
     RESERVA {
         int id PK
         int socio_id FK
@@ -131,6 +139,12 @@ retorno las sedes van invertidas, y así cada remito se puede leer solo.
 estado anterior, nuevo, fecha y observación. El remito conserva solo el estado actual y las
 fechas clave (despacho y recepción) para los reportes.
 
+**Las incidencias son una tabla aparte.** Cuando un envío se extravía o el ejemplar llega dañado
+o destruido, se registra una `incidencia` con su tipo (EXTRAVIO, DANIO, DESTRUCCION), una
+descripción y la fecha. El remito ya guarda el estado físico de llegada, pero la tabla permite
+listar todos los problemas de envío juntos, filtrarlos por sede o período, y agregar más de un
+registro por remito si hiciera falta.
+
 **La reserva es por libro, no por ejemplar.** El socio quiere "ese libro en esa sede", no una
 copia en particular. El `ejemplar_id` se completa recién cuando se le aparta una copia.
 
@@ -153,7 +167,15 @@ para devolver un error claro (409) en lugar de un error de base de datos. La val
 nombre de sede no distingue mayúsculas ("Centro" y "centro" se consideran iguales).
 
 Los enums se guardan como texto (`native_enum=False`) y no como tipo `ENUM` de Postgres. Así
-agregar un valor nuevo no requiere alterar un tipo en la base.
+agregar un valor nuevo no requiere alterar un tipo en la base: por ejemplo, el estado físico
+DESTRUIDO se agregó sin migración.
+
+## Migraciones
+
+| Revisión | Cambio |
+|---|---|
+| `0001` | Esquema inicial |
+| `0002` | Tabla `incidencias` |
 
 ## Estados de cada entidad
 
@@ -167,9 +189,9 @@ agregar un valor nuevo no requiere alterar un tipo en la base.
 | EN_TRANSITO | Viajando entre sedes, o devuelto esperando el remito de retorno |
 | EN_REPARACION | Se devolvió o llegó dañado; no circula hasta marcarlo reparado |
 | EXTRAVIADO | Se perdió en un envío |
-| BAJA | Retirado del catálogo |
+| BAJA | Retirado del catálogo, o se devolvió o llegó destruido |
 
-El estado físico (`estado_fisico`) es independiente: BUENO, REGULAR o DANADO.
+El estado físico (`estado_fisico`) es independiente: BUENO, REGULAR, DANADO o DESTRUIDO.
 
 ### Préstamo (`estado`)
 
@@ -180,7 +202,7 @@ stateDiagram-v2
     SOLICITADO --> EN_TRANSITO: remito despachado
     SOLICITADO --> CANCELADO: remito cancelado
     EN_TRANSITO --> ACTIVO: remito recibido
-    EN_TRANSITO --> CANCELADO: remito extraviado
+    EN_TRANSITO --> CANCELADO: remito extraviado o ejemplar destruido
     ACTIVO --> DEVUELTO: devolución
     DEVUELTO --> [*]
     CANCELADO --> [*]
