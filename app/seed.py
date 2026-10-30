@@ -23,39 +23,39 @@ from app.services.sede_service import SedeService
 from app.services.socio_service import SocioService
 
 SEDES = [
-    ("CEN", SedeCrear(nombre="Biblioteca Central", direccion="Av. Colon 1200", telefono="351-4000001",
+    ("CEN", SedeCrear(nombre="Biblioteca Central", direccion="Av. Colón 1200", telefono="351-4000001",
                       email="central@bibliotecas.gob.ar", horario="Lun a Vie 8 a 20, Sab 9 a 13")),
-    ("NOR", SedeCrear(nombre="Sede Norte", direccion="Av. Monsenor Pablo Cabrera 3500", telefono="351-4000002",
+    ("NOR", SedeCrear(nombre="Sede Norte", direccion="Av. Monseñor Pablo Cabrera 3500", telefono="351-4000002",
                       email="norte@bibliotecas.gob.ar", horario="Lun a Vie 9 a 18")),
-    ("SUR", SedeCrear(nombre="Sede Sur", direccion="Av. Velez Sarsfield 4100", telefono="351-4000003",
+    ("SUR", SedeCrear(nombre="Sede Sur", direccion="Av. Vélez Sarsfield 4100", telefono="351-4000003",
                       email="sur@bibliotecas.gob.ar", horario="Lun a Sab 9 a 14")),
-    ("OES", SedeCrear(nombre="Sede Oeste", direccion="Av. Fuerza Aerea 2800", telefono="351-4000004",
+    ("OES", SedeCrear(nombre="Sede Oeste", direccion="Av. Fuerza Aérea 2800", telefono="351-4000004",
                       horario="Lun a Vie 14 a 20")),
 ]
 
 SOCIOS = [
-    SocioCrear(dni="38111222", nombre="Lucia", apellido="Fernandez", email="lucia.fernandez@mail.com", telefono="351-5550001"),
-    SocioCrear(dni="40222333", nombre="Martin", apellido="Gomez", email="martin.gomez@mail.com", telefono="351-5550002"),
-    SocioCrear(dni="35333444", nombre="Sofia", apellido="Ramirez", email="sofia.ramirez@mail.com"),
-    SocioCrear(dni="42444555", nombre="Joaquin", apellido="Diaz", email="joaquin.diaz@mail.com"),
-    SocioCrear(dni="33555666", nombre="Valentina", apellido="Lopez", email="valentina.lopez@mail.com", telefono="351-5550005"),
-    SocioCrear(dni="39666777", nombre="Tomas", apellido="Martinez", email="tomas.martinez@mail.com"),
+    SocioCrear(dni="38111222", nombre="Lucía", apellido="Fernández", email="lucia.fernandez@mail.com", telefono="351-5550001"),
+    SocioCrear(dni="40222333", nombre="Martín", apellido="Gómez", email="martin.gomez@mail.com", telefono="351-5550002"),
+    SocioCrear(dni="35333444", nombre="Sofia", apellido="Ramírez", email="sofia.ramirez@mail.com"),
+    SocioCrear(dni="42444555", nombre="Joaquín", apellido="Díaz", email="joaquin.diaz@mail.com"),
+    SocioCrear(dni="33555666", nombre="Valentina", apellido="López", email="valentina.lopez@mail.com", telefono="351-5550005"),
+    SocioCrear(dni="39666777", nombre="Tomás", apellido="Martínez", email="tomas.martinez@mail.com"),
     SocioCrear(dni="41777888", nombre="Camila", apellido="Sosa", email="camila.sosa@mail.com"),
-    SocioCrear(dni="36888999", nombre="Nicolas", apellido="Romero", email="nicolas.romero@mail.com"),
+    SocioCrear(dni="36888999", nombre="Nicolás", apellido="Romero", email="nicolas.romero@mail.com"),
     SocioCrear(dni="37999000", nombre="Diego", apellido="Acosta", email="diego.acosta@mail.com"),
 ]
 
 LIBROS = [
     LibroCrear(isbn="9789875666474", titulo="Ficciones", autor="Jorge Luis Borges", editorial="Debolsillo", anio_publicacion=1944, genero="Cuentos"),
-    LibroCrear(isbn="9789500728997", titulo="Rayuela", autor="Julio Cortazar", editorial="Alfaguara", anio_publicacion=1963, genero="Novela"),
-    LibroCrear(isbn="9789500739559", titulo="El tunel", autor="Ernesto Sabato", editorial="Seix Barral", anio_publicacion=1948, genero="Novela"),
-    LibroCrear(isbn="9788437604947", titulo="Cien anios de soledad", autor="Gabriel Garcia Marquez", editorial="Catedra", anio_publicacion=1967, genero="Novela"),
+    LibroCrear(isbn="9789500728997", titulo="Rayuela", autor="Julio Cortázar", editorial="Alfaguara", anio_publicacion=1963, genero="Novela"),
+    LibroCrear(isbn="9789500739559", titulo="El túnel", autor="Ernesto Sábato", editorial="Seix Barral", anio_publicacion=1948, genero="Novela"),
+    LibroCrear(isbn="9788437604947", titulo="Cien años de soledad", autor="Gabriel García Márquez", editorial="Catedra", anio_publicacion=1967, genero="Novela"),
     LibroCrear(isbn="9789500747127", titulo="El Aleph", autor="Jorge Luis Borges", editorial="Debolsillo", anio_publicacion=1949, genero="Cuentos"),
-    LibroCrear(isbn="9789871138548", titulo="Martin Fierro", autor="Jose Hernandez", editorial="Colihue", anio_publicacion=1872, genero="Poesia"),
-    LibroCrear(isbn="9789504918974", titulo="Sobre heroes y tumbas", autor="Ernesto Sabato", editorial="Seix Barral", anio_publicacion=1961, genero="Novela"),
-    LibroCrear(isbn="9789875809901", titulo="Bestiario", autor="Julio Cortazar", editorial="Alfaguara", anio_publicacion=1951, genero="Cuentos"),
+    LibroCrear(isbn="9789871138548", titulo="Martín Fierro", autor="José Hernández", editorial="Colihue", anio_publicacion=1872, genero="Poesía"),
+    LibroCrear(isbn="9789504918974", titulo="Sobre héroes y tumbas", autor="Ernesto Sábato", editorial="Seix Barral", anio_publicacion=1961, genero="Novela"),
+    LibroCrear(isbn="9789875809901", titulo="Bestiario", autor="Julio Cortázar", editorial="Alfaguara", anio_publicacion=1951, genero="Cuentos"),
     LibroCrear(isbn="9789500433860", titulo="Facundo", autor="Domingo F. Sarmiento", editorial="Emece", anio_publicacion=1845, genero="Ensayo"),
-    LibroCrear(isbn="9789871136650", titulo="Don Segundo Sombra", autor="Ricardo Guiraldes", editorial="Losada", anio_publicacion=1926, genero="Novela"),
+    LibroCrear(isbn="9789871136650", titulo="Don Segundo Sombra", autor="Ricardo Güiraldes", editorial="Losada", anio_publicacion=1926, genero="Novela"),
 ]
 
 # Copias por sede de cada libro
@@ -178,7 +178,7 @@ class CargaDeEjemplo:
 
         # Ejemplar destruido en el viaje: el prestamo se cancela
         p = self._pedir(lucia, libros[0], "CEN", "SUR", 17)
-        self._enviar(p.remitos[0], momento(16, 10), momento(15, 11), EstadoFisico.DESTRUIDO, "Llego mojado e ilegible")
+        self._enviar(p.remitos[0], momento(16, 10), momento(15, 11), EstadoFisico.DESTRUIDO, "Llegó mojado e ilegible")
 
         # Extraviado en el viaje
         p = self._pedir(valentina, libros[9], "CEN", "SUR", 13)
@@ -224,7 +224,7 @@ class CargaDeEjemplo:
         servicio.crear(ReservaCrear(socio_id=joaquin.id, libro_id=martin_fierro.id, sede_id=central.id))
 
     def estados_finales(self):
-        SocioService(self.db).inhabilitar(self.socios[8].id, "Extravio un libro y no lo repuso")
+        SocioService(self.db).inhabilitar(self.socios[8].id, "Extravió un libro y no lo repuso")
         SedeService(self.db).dar_de_baja(self.sedes["OES"].id)
 
 
