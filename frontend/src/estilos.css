@@ -1,0 +1,7 @@
+body {
+  margin: 0;
+}
+
+.fila-vencida td {
+  background: #fff1f0 !important;
+}
