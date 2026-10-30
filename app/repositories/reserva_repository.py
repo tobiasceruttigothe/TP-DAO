@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.domain.enums import EstadoReserva
 from app.models import Reserva
-from app.repositories.base import BaseRepository
+from app.repositories.base import BaseRepository, Paginacion, ResultadoPaginado
 
 ESTADOS_ACTIVOS = (EstadoReserva.PENDIENTE, EstadoReserva.DISPONIBLE)
 
@@ -13,14 +13,14 @@ class ReservaRepository(BaseRepository[Reserva]):
     modelo = Reserva
 
     def listar_filtrado(
-        self, socio_id: int | None = None, estado: EstadoReserva | None = None
-    ) -> list[Reserva]:
+        self, paginacion: Paginacion, socio_id: int | None = None, estado: EstadoReserva | None = None
+    ) -> ResultadoPaginado[Reserva]:
         consulta = select(Reserva).order_by(Reserva.id.desc())
         if socio_id is not None:
             consulta = consulta.where(Reserva.socio_id == socio_id)
         if estado is not None:
             consulta = consulta.where(Reserva.estado == estado)
-        return list(self.db.scalars(consulta))
+        return self.paginar(consulta, paginacion)
 
     def activa_de_socio(self, socio_id: int, libro_id: int) -> Reserva | None:
         consulta = select(Reserva).where(

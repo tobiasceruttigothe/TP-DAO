@@ -1,11 +1,35 @@
+import math
+from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from sqlalchemy import select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.database import Base
 
 T = TypeVar("T", bound=Base)
+
+
+@dataclass
+class Paginacion:
+    pagina: int = 1
+    tamanio: int = 20
+
+    @property
+    def desplazamiento(self) -> int:
+        return (self.pagina - 1) * self.tamanio
+
+
+@dataclass
+class ResultadoPaginado(Generic[T]):
+    items: list[T]
+    total: int
+    pagina: int
+    tamanio: int
+
+    @property
+    def paginas(self) -> int:
+        return math.ceil(self.total / self.tamanio) if self.total else 0
 
 
 class BaseRepository(Generic[T]):
@@ -31,3 +55,10 @@ class BaseRepository(Generic[T]):
     def eliminar(self, entidad: T):
         self.db.delete(entidad)
         self.db.flush()
+
+    def paginar(self, consulta: Select, paginacion: Paginacion) -> ResultadoPaginado[T]:
+        total = self.db.scalar(select(func.count()).select_from(consulta.order_by(None).subquery()))
+        items = self.db.scalars(consulta.offset(paginacion.desplazamiento).limit(paginacion.tamanio))
+        return ResultadoPaginado(
+            items=list(items), total=total, pagina=paginacion.pagina, tamanio=paginacion.tamanio
+        )

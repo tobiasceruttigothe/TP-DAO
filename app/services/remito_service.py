@@ -3,11 +3,17 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.domain.enums import EstadoEjemplar, EstadoFisico, EstadoPrestamo, TipoRemito
+from app.domain.enums import EstadoEjemplar, EstadoFisico, EstadoPrestamo, TipoIncidencia, TipoRemito
 from app.exceptions import NoEncontradoError, ReglaNegocioError
-from app.models import Prestamo, Remito
-from app.repositories import RemitoRepository
+from app.models import Incidencia, Prestamo, Remito
+from app.repositories import IncidenciaRepository, RemitoRepository
+from app.repositories.base import Paginacion, ResultadoPaginado
 from app.services.reserva_service import ReservaService
+
+_INCIDENCIA_POR_ESTADO_FISICO = {
+    EstadoFisico.DANADO: TipoIncidencia.DANIO,
+    EstadoFisico.DESTRUIDO: TipoIncidencia.DESTRUCCION,
+}
 
 
 class RemitoService:
@@ -17,9 +23,12 @@ class RemitoService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = RemitoRepository(db)
+        self.incidencias = IncidenciaRepository(db)
 
-    def listar(self, estado: str | None = None, sede_id: int | None = None) -> list[Remito]:
-        return self.repo.listar_filtrado(estado, sede_id)
+    def listar(
+        self, paginacion: Paginacion, estado: str | None = None, sede_id: int | None = None
+    ) -> ResultadoPaginado[Remito]:
+        return self.repo.listar_filtrado(paginacion, estado, sede_id)
 
     def obtener(self, remito_id: int) -> Remito:
         remito = self.repo.obtener(remito_id)
@@ -32,6 +41,16 @@ class RemitoService:
         if remito is None:
             raise NoEncontradoError(f"No existe el remito {numero}")
         return remito
+
+    def listar_incidencias(
+        self,
+        paginacion: Paginacion,
+        tipo: TipoIncidencia | None = None,
+        sede_id: int | None = None,
+        desde: date | None = None,
+        hasta: date | None = None,
+    ) -> ResultadoPaginado[Incidencia]:
+        return self.incidencias.listar_filtrado(paginacion, tipo, sede_id, desde, hasta)
 
     def generar(self, prestamo: Prestamo, tipo: TipoRemito) -> Remito:
         """Crea el remito en estado PENDIENTE. No hace commit."""
@@ -77,13 +96,23 @@ class RemitoService:
         observacion: str | None = None,
         hoy: date | None = None,
     ) -> Remito:
+        """Registra la llegada y la revision del ejemplar. Si llega danado o destruido
+        queda registrada la incidencia."""
         remito = self.obtener(remito_id)
         remito.recibir(observacion)
         remito.estado_fisico_recepcion = estado_fisico
         ejemplar = remito.ejemplar
         ejemplar.estado_fisico = estado_fisico
 
-        if remito.tipo == TipoRemito.IDA:
+        if estado_fisico in _INCIDENCIA_POR_ESTADO_FISICO:
+            remito.registrar_incidencia(_INCIDENCIA_POR_ESTADO_FISICO[estado_fisico], observacion)
+
+        if estado_fisico == EstadoFisico.DESTRUIDO:
+            ejemplar.cambiar_estado(EstadoEjemplar.BAJA)
+            if remito.tipo == TipoRemito.IDA:
+                remito.prestamo.estado = EstadoPrestamo.CANCELADO
+                remito.prestamo.observaciones = f"Cancelado: ejemplar destruido en el remito {remito.numero}"
+        elif remito.tipo == TipoRemito.IDA:
             # Llego a la sede destino: el socio ya puede retirarlo y empieza a correr el plazo.
             remito.prestamo.activar(hoy or date.today(), settings.dias_prestamo)
             ejemplar.cambiar_estado(EstadoEjemplar.PRESTADO)
@@ -97,6 +126,7 @@ class RemitoService:
     def marcar_extraviado(self, remito_id: int, observacion: str | None = None) -> Remito:
         remito = self.obtener(remito_id)
         remito.marcar_extraviado(observacion)
+        remito.registrar_incidencia(TipoIncidencia.EXTRAVIO, observacion)
         remito.ejemplar.cambiar_estado(EstadoEjemplar.EXTRAVIADO)
         if remito.tipo == TipoRemito.IDA:
             remito.prestamo.estado = EstadoPrestamo.CANCELADO

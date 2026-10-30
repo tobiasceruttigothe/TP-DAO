@@ -1,21 +1,39 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.prestamo import RecepcionRemito, RemitoDetalle, RemitoRespuesta, TransicionRemito
+from app.domain.enums import TipoIncidencia
+from app.repositories.base import Paginacion
+from app.routers.dependencias import paginacion
+from app.schemas.paginacion import Pagina
+from app.schemas.prestamo import (
+    IncidenciaRespuesta,
+    RecepcionRemito,
+    RemitoDetalle,
+    RemitoRespuesta,
+    TransicionRemito,
+)
 from app.services.remito_service import RemitoService
 
 router = APIRouter(prefix="/remitos", tags=["Remitos"])
+incidencias_router = APIRouter(prefix="/incidencias", tags=["Remitos"])
 
 
 def get_service(db: Session = Depends(get_db)) -> RemitoService:
     return RemitoService(db)
 
 
-@router.get("", response_model=list[RemitoRespuesta])
-def listar_remitos(estado: str | None = None, sede_id: int | None = None, service: RemitoService = Depends(get_service)):
-    """Filtra por estado (PENDIENTE, EMPAQUETADO, DESPACHADO, RECIBIDO, EXTRAVIADO, CANCELADO) o por sede."""
-    return service.listar(estado, sede_id)
+@router.get("", response_model=Pagina[RemitoRespuesta])
+def listar_remitos(
+    estado: str | None = None,
+    sede_id: int | None = None,
+    pag: Paginacion = Depends(paginacion),
+    service: RemitoService = Depends(get_service),
+):
+    """Filtra por estado (PENDIENTE, EMPAQUETADO, DESPACHADO, RECIBIDO, EXTRAVIADO, CANCELADO) o por sede. Paginado."""
+    return Pagina[RemitoRespuesta].desde(service.listar(pag, estado, sede_id))
 
 
 @router.get("/numero/{numero}", response_model=RemitoDetalle)
@@ -41,7 +59,8 @@ def despachar(remito_id: int, datos: TransicionRemito | None = None, service: Re
 
 @router.post("/{remito_id}/recibir", response_model=RemitoDetalle)
 def recibir(remito_id: int, datos: RecepcionRemito | None = None, service: RemitoService = Depends(get_service)):
-    """Registra la llegada y el estado fisico con el que llego el ejemplar."""
+    """Registra la llegada y la revision del ejemplar. DANADO o DESTRUIDO generan una
+    incidencia; DESTRUIDO ademas da de baja el ejemplar y, si es de ida, cancela el prestamo."""
     datos = datos or RecepcionRemito()
     return service.recibir(remito_id, datos.estado_fisico, datos.observacion)
 
@@ -55,3 +74,16 @@ def marcar_extraviado(remito_id: int, datos: TransicionRemito | None = None, ser
 def cancelar(remito_id: int, datos: TransicionRemito | None = None, service: RemitoService = Depends(get_service)):
     """Solo antes de despachar. Cancela tambien el prestamo y libera el ejemplar."""
     return service.cancelar(remito_id, datos.observacion if datos else None)
+
+
+@incidencias_router.get("", response_model=Pagina[IncidenciaRespuesta])
+def listar_incidencias(
+    tipo: TipoIncidencia | None = None,
+    sede_id: int | None = None,
+    desde: date | None = None,
+    hasta: date | None = None,
+    pag: Paginacion = Depends(paginacion),
+    service: RemitoService = Depends(get_service),
+):
+    """Danos, destrucciones y extravios registrados en los envios. Paginado."""
+    return Pagina[IncidenciaRespuesta].desde(service.listar_incidencias(pag, tipo, sede_id, desde, hasta))

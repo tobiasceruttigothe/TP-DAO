@@ -4,8 +4,8 @@ from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-from app.domain.enums import EstadoFisico, TipoRemito
-from app.domain.estados_remito import EstadoRemito, Pendiente, estado_desde_nombre
+from app.domain.enums import EstadoFisico, TipoIncidencia, TipoRemito
+from app.domain.estados_remito import EstadoRemito, Extraviado, Pendiente, estado_desde_nombre
 
 
 class Remito(Base):
@@ -32,6 +32,12 @@ class Remito(Base):
         "MovimientoRemito",
         back_populates="remito",
         order_by="MovimientoRemito.id",
+        cascade="all, delete-orphan",
+    )
+    incidencias = relationship(
+        "Incidencia",
+        back_populates="remito",
+        order_by="Incidencia.id",
         cascade="all, delete-orphan",
     )
 
@@ -68,6 +74,16 @@ class Remito(Base):
     def cancelar(self, observacion=None):
         self.estado_actual.cancelar(self, observacion)
 
+    def registrar_incidencia(self, tipo: TipoIncidencia, descripcion: str | None = None):
+        self.incidencias.append(Incidencia(tipo=tipo, descripcion=descripcion))
+
+    @property
+    def tuvo_incidencia(self) -> bool:
+        return self.estado == Extraviado.nombre or self.estado_fisico_recepcion in (
+            EstadoFisico.DANADO,
+            EstadoFisico.DESTRUIDO,
+        )
+
     @property
     def horas_en_transito(self) -> float | None:
         if self.fecha_despacho is None or self.fecha_recepcion is None:
@@ -88,3 +104,17 @@ class MovimientoRemito(Base):
     observacion = Column(String(300))
 
     remito = relationship("Remito", back_populates="movimientos")
+
+
+class Incidencia(Base):
+    """Problema detectado en un envio: dano o destruccion al recibir, o extravio."""
+
+    __tablename__ = "incidencias"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    remito_id = Column(Integer, ForeignKey("remitos.id"), nullable=False)
+    tipo = Column(Enum(TipoIncidencia, native_enum=False, length=20), nullable=False)
+    descripcion = Column(String(300))
+    fecha = Column(DateTime, nullable=False, default=datetime.now)
+
+    remito = relationship("Remito", back_populates="incidencias")

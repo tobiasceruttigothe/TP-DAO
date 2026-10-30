@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.repositories.base import Paginacion
+from app.routers.dependencias import paginacion
 from app.domain.enums import EstadoReserva
+from app.schemas.paginacion import Pagina
 from app.schemas.reserva import ReservaCrear, ReservaRespuesta
 from app.services.reserva_service import ReservaService
 
@@ -13,11 +16,15 @@ def get_service(db: Session = Depends(get_db)) -> ReservaService:
     return ReservaService(db)
 
 
-@router.get("", response_model=list[ReservaRespuesta])
+@router.get("", response_model=Pagina[ReservaRespuesta])
 def listar_reservas(
-    socio_id: int | None = None, estado: EstadoReserva | None = None, service: ReservaService = Depends(get_service)
+    socio_id: int | None = None,
+    estado: EstadoReserva | None = None,
+    pag: Paginacion = Depends(paginacion),
+    service: ReservaService = Depends(get_service),
 ):
-    return service.listar(socio_id, estado)
+    """Paginado."""
+    return Pagina[ReservaRespuesta].desde(service.listar(pag, socio_id, estado))
 
 
 @router.get("/{reserva_id}", response_model=ReservaRespuesta)

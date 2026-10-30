@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.repositories.base import Paginacion
+from app.routers.dependencias import paginacion
 from app.domain.enums import EstadoEjemplar
+from app.schemas.paginacion import Pagina
 from app.schemas.libro import (
     DisponibilidadLibro,
     EjemplarCrear,
@@ -21,10 +24,12 @@ def get_service(db: Session = Depends(get_db)) -> CatalogoService:
     return CatalogoService(db)
 
 
-@libros_router.get("", response_model=list[LibroRespuesta])
-def buscar_libros(q: str | None = None, service: CatalogoService = Depends(get_service)):
-    """Busca libros por titulo o autor."""
-    return service.buscar_libros(q)
+@libros_router.get("", response_model=Pagina[LibroRespuesta])
+def buscar_libros(
+    q: str | None = None, pag: Paginacion = Depends(paginacion), service: CatalogoService = Depends(get_service)
+):
+    """Busca libros por titulo o autor. Paginado."""
+    return Pagina[LibroRespuesta].desde(service.buscar_libros(pag, q))
 
 
 @libros_router.get("/{libro_id}", response_model=LibroRespuesta)
@@ -49,14 +54,16 @@ def consultar_disponibilidad(libro_id: int, service: CatalogoService = Depends(g
     return service.disponibilidad(libro_id)
 
 
-@ejemplares_router.get("", response_model=list[EjemplarRespuesta])
+@ejemplares_router.get("", response_model=Pagina[EjemplarRespuesta])
 def listar_ejemplares(
     libro_id: int | None = None,
     sede_id: int | None = None,
     estado: EstadoEjemplar | None = None,
+    pag: Paginacion = Depends(paginacion),
     service: CatalogoService = Depends(get_service),
 ):
-    return service.listar_ejemplares(libro_id, sede_id, estado)
+    """Paginado."""
+    return Pagina[EjemplarRespuesta].desde(service.listar_ejemplares(pag, libro_id, sede_id, estado))
 
 
 @ejemplares_router.get("/{ejemplar_id}", response_model=EjemplarRespuesta)

@@ -123,3 +123,56 @@ def test_reportes_responden(client):
         "/reportes/movimientos-sedes",
     ):
         assert client.get(ruta).status_code == 200, ruta
+
+
+def test_listados_paginados(client):
+    for i in range(5):
+        crear_socio(client, dni=f"4000000{i}", email=f"s{i}@mail.com")
+
+    r = client.get("/socios", params={"pagina": 2, "tamanio": 2})
+    assert r.status_code == 200
+    cuerpo = r.json()
+    assert (cuerpo["total"], cuerpo["pagina"], cuerpo["tamanio"], cuerpo["paginas"]) == (5, 2, 2, 3)
+    assert len(cuerpo["items"]) == 2
+
+    assert len(client.get("/socios", params={"pagina": 3, "tamanio": 2}).json()["items"]) == 1
+    assert client.get("/socios", params={"tamanio": 500}).status_code == 422
+    assert client.get("/socios", params={"pagina": 0}).status_code == 422
+
+
+def test_historial_por_api(client):
+    centro = crear_sede(client, "Centro")
+    socio = crear_socio(client)
+    libro = crear_libro(client)
+    ejemplar = crear_ejemplar(client, libro["id"], centro["id"])
+    prestamo = client.post(
+        "/prestamos",
+        json={
+            "socio_id": socio["id"],
+            "ejemplar_id": ejemplar["id"],
+            "sede_origen_id": centro["id"],
+            "sede_destino_id": centro["id"],
+        },
+    ).json()
+    client.post(f"/prestamos/{prestamo['id']}/devolucion", json={"estado_fisico": "BUENO"})
+
+    historial = client.get(f"/socios/{socio['id']}/historial").json()
+    assert historial["total"] == 1
+    assert historial["items"][0]["titulo"] == "Rayuela"
+    assert client.get("/socios/999/historial").status_code == 404
+
+
+def test_incidencias_por_api(client):
+    assert client.get("/incidencias").json()["total"] == 0
+    assert client.get("/incidencias", params={"tipo": "OTRO"}).status_code == 422
+
+
+def test_cors_permite_al_frontend(client):
+    r = client.options(
+        "/socios",
+        headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET"},
+    )
+    assert r.headers.get("access-control-allow-origin") == "http://localhost:5173"
+
+    r = client.get("/health", headers={"Origin": "http://sitio-desconocido.com"})
+    assert "access-control-allow-origin" not in r.headers
