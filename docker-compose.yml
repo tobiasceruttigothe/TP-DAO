@@ -28,5 +28,15 @@ services:
       db:
         condition: service_healthy
 
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:${API_PORT:-8000}
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      - api
+
 volumes:
   pgdata:
