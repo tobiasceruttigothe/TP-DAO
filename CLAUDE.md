@@ -1,17 +1,19 @@
 # CLAUDE.md
 
 Guía para trabajar en este repo. TP de la materia DAO (Desarrollo de Aplicaciones con Objetos):
-backend del sistema de préstamos interbibliotecarios (consigna: Tema 1). El frontend lo hace otra
-parte del grupo y consume esta API.
+sistema de préstamos interbibliotecarios (consigna: Tema 1). Backend en Python (`app/`) y
+frontend en React (`frontend/`, con su propio README y convenciones).
 
 ## Comandos
 
 ```bash
-docker compose up --build              # API en :8000 + Postgres
+docker compose up --build              # web en :3000, API en :8000, Postgres
 docker compose exec api pytest         # tests
 docker compose exec api python -m app.seed
 alembic revision --autogenerate -m "descripcion"   # tras cambiar un modelo
 alembic upgrade head
+cd frontend && npm run dev             # front con recarga automatica en :5173
+cd frontend && npm run lint
 ```
 
 ## Convenciones
@@ -29,6 +31,8 @@ alembic upgrade head
 - Documentar endpoints con un docstring corto (aparece en Swagger), sin comentarios de más.
 - Si un cambio afecta el modelo, un patrón, un proceso o una regla, actualizar el documento
   correspondiente en `docs/`. Los diagramas son Mermaid (GitHub los dibuja).
+- Si se agrega un estado en un enum del backend, agregarlo también en `frontend/src/utiles/estados.js`.
+- Las búsquedas por texto usan `contiene()` de `app/repositories/base.py` (ignora tildes).
 
 ## Patrones aplicados
 

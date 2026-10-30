@@ -1,6 +1,6 @@
 # Despliegue local
 
-Paso a paso para levantar el backend (API + base de datos) en una PC con Docker. Si Docker
+Paso a paso para levantar el sistema completo (base de datos, API y frontend) en una PC con Docker. Si Docker
 todavía no está instalado, seguir antes [instalar-docker-windows.md](instalar-docker-windows.md).
 
 Los comandos son para **PowerShell** en Windows; en Linux o Mac son los mismos.
@@ -14,7 +14,7 @@ git clone https://github.com/tobiasceruttigothe/TP-DAO.git
 cd TP-DAO
 docker compose up --build -d
 docker compose exec api python -m app.seed
-# abrir http://localhost:8000/docs
+# abrir http://localhost:3000
 ```
 
 ## 1. Descargar el repositorio
@@ -40,11 +40,11 @@ docker compose up --build -d
 
 Qué hace:
 
-- `--build` construye la imagen de la API (la primera vez tarda unos minutos porque descarga
-  Python y las librerías; las siguientes es casi inmediato).
+- `--build` construye las imágenes de la API y del frontend (la primera vez tarda unos minutos
+  porque descarga Python, Node y las librerías; las siguientes es mucho más rápido).
 - `-d` lo deja corriendo en segundo plano y devuelve la consola.
-- Levanta dos contenedores: `db` (PostgreSQL) y `api` (la aplicación). La API espera a que la base
-  esté lista y, al arrancar, crea o actualiza las tablas solas (migraciones).
+- Levanta tres contenedores: `db` (PostgreSQL), `api` (el backend) y `web` (el frontend). La API
+  espera a que la base esté lista y, al arrancar, crea o actualiza las tablas solas (migraciones).
 
 Verificar que estén corriendo:
 
@@ -52,7 +52,7 @@ Verificar que estén corriendo:
 docker compose ps
 ```
 
-Los dos servicios tienen que figurar como `running` (la base, además, `healthy`).
+Los tres servicios tienen que figurar como `running` (la base, además, `healthy`).
 
 ## 3. Cargar datos de ejemplo
 
@@ -68,14 +68,20 @@ datos, no hace nada.
 
 | Qué | Dónde |
 |---|---|
-| Documentación interactiva (Swagger) | http://localhost:8000/docs |
+| **Sistema (panel del personal)** | http://localhost:3000 |
+| Consulta para socios | http://localhost:3000/consulta |
+| Documentación interactiva de la API (Swagger) | http://localhost:8000/docs |
 | Documentación alternativa (ReDoc) | http://localhost:8000/redoc |
 | Chequeo rápido | http://localhost:8000/health → `{"status":"ok"}` |
 
 En Swagger se puede probar cada endpoint: abrir uno, **Try it out**, completar los datos y
 **Execute**. Por ejemplo, `GET /reportes/prestamos-activos`.
 
-Para el frontend, la URL base de la API es `http://localhost:8000`.
+Con los datos de ejemplo, en la consulta para socios se puede probar con el DNI `39666777`
+(tiene un préstamo vencido) o `36888999` (tiene una reserva lista para retirar).
+
+Para trabajar en el código del frontend con recarga automática, ver
+[frontend/README.md](../frontend/README.md).
 
 ## 5. Correr los tests
 
@@ -93,6 +99,7 @@ Usan una base separada (`biblioteca_test`), así que no tocan los datos cargados
 | Detener (los datos se conservan) | `docker compose down` |
 | Ver qué está corriendo | `docker compose ps` |
 | Ver los logs de la API en vivo (`Ctrl + C` para salir) | `docker compose logs -f api` |
+| Reconstruir solo el frontend | `docker compose up --build -d web` |
 | Actualizar después de un `git pull` | `docker compose up --build -d` |
 | Borrar la base y empezar de cero | `docker compose down -v` y después levantar y cargar el seed de nuevo |
 | Abrir una consola de la base | `docker compose exec db psql -U biblioteca` (salir con `\q`) |
@@ -114,7 +121,7 @@ Con DBeaver, pgAdmin o la extensión de VS Code:
 
 ## Cambiar puertos
 
-Si el puerto 8000 o el 5432 ya está en uso en la PC (por ejemplo, porque hay un PostgreSQL
+Si el puerto 3000, 8000 o 5432 ya está en uso en la PC (por ejemplo, porque hay un PostgreSQL
 instalado), crear un archivo `.env` en la carpeta del proyecto copiando el ejemplo:
 
 ```powershell
@@ -126,12 +133,16 @@ Y cambiar los valores que hagan falta:
 ```
 API_PORT=8001
 DB_PORT=5433
+WEB_PORT=3001
+CORS_ORIGENES=http://localhost:3001,http://localhost:5173
 ```
 
-Después, `docker compose up -d`. La API queda en `http://localhost:8001`.
+Después, `docker compose up --build -d` (con `--build`, porque el frontend guarda la dirección de
+la API al compilarse). El sistema queda en `http://localhost:3001` y la API en
+`http://localhost:8001`.
 
-En ese mismo archivo se puede ajustar `CORS_ORIGENES` si el frontend corre en un puerto que no
-está en la lista por defecto (3000, 5173 y 4200).
+Si se cambia `WEB_PORT`, hay que agregar ese puerto a `CORS_ORIGENES`: si no, el navegador bloquea
+las llamadas del frontend a la API.
 
 ## Problemas frecuentes
 
@@ -140,7 +151,7 @@ está en la lista por defecto (3000, 5173 y 4200).
 | `error during connect` / `cannot find the file specified ... dockerDesktopLinuxEngine` | Docker Desktop no está abierto o todavía está arrancando. Abrirlo y esperar a que diga *Engine running*. |
 | `Bind for 0.0.0.0:5432 failed: port is already allocated` (o 8000) | Otro programa usa ese puerto. Ver [Cambiar puertos](#cambiar-puertos). |
 | La API se reinicia o no arranca y el log dice `exec docker/entrypoint.sh: no such file or directory` o `\r: not found` | El script quedó con finales de línea de Windows. El repo ya lo evita con `.gitattributes`; si se clonó antes de ese cambio, ejecutar `git rm --cached -r .`, `git reset --hard` y volver a levantar con `--build`. |
-| `GET` a la API desde el frontend falla con un error de CORS en la consola del navegador | El puerto del frontend no está habilitado. Agregarlo en `CORS_ORIGENES` (ver [Cambiar puertos](#cambiar-puertos)) y reiniciar con `docker compose up -d`. |
+| El frontend carga pero todas las pantallas dicen "No se pudo conectar con el servidor" | La API no está corriendo (`docker compose ps`), o el puerto del frontend no está en `CORS_ORIGENES` (en la consola del navegador, `F12`, aparece un error de CORS). Ver [Cambiar puertos](#cambiar-puertos). |
 | El seed dice "La base ya tiene datos" | Es normal si ya se cargó. Para empezar de cero: `docker compose down -v`, `docker compose up -d` y el seed de nuevo. |
 | Cambié código y no se ve el cambio | La API corre desde la imagen construida. Volver a levantar con `docker compose up --build -d`. |
 

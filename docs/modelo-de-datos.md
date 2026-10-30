@@ -176,6 +176,7 @@ DESTRUIDO se agregó sin migración.
 |---|---|
 | `0001` | Esquema inicial |
 | `0002` | Tabla `incidencias` |
+| `0003` | Extensión `unaccent` de Postgres, para buscar sin distinguir tildes |
 
 ## Estados de cada entidad
 

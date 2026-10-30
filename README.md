@@ -21,6 +21,7 @@ cada endpoint queda disponible en `/docs` (Swagger) y `/redoc` al levantar la AP
 | Componente      | Elección                         |
 |-----------------|----------------------------------|
 | API             | FastAPI                          |
+| Frontend        | React 18 + Vite, Ant Design      |
 | ORM             | SQLAlchemy 2.0                   |
 | Base de datos   | PostgreSQL 16                    |
 | Migraciones     | Alembic                          |
@@ -39,8 +40,8 @@ Guía detallada para Windows, incluida la instalación de Docker: [docs/desplieg
 docker compose up --build
 ```
 
-Levanta Postgres y la API en `http://localhost:8000`. Al iniciar, el contenedor aplica las
-migraciones pendientes. Para cargar datos de ejemplo (sedes, socios, catálogo y un escenario con
+Levanta Postgres, la API en `http://localhost:8000` y el frontend en `http://localhost:3000`. Al
+iniciar, la API aplica las migraciones pendientes. Para cargar datos de ejemplo (sedes, socios, catálogo y un escenario con
 préstamos devueltos, activos y vencidos, multas, envíos en distintos estados, incidencias y
 reservas, para que los reportes muestren información):
 
@@ -56,7 +57,8 @@ docker compose exec api pytest
 
 ### Sin Docker
 
-Requiere Python 3.12+ y un Postgres corriendo.
+Requiere Python 3.12+ y un Postgres corriendo (con las extensiones estándar, que incluyen
+`unaccent`). El frontend se levanta aparte: ver [frontend/README.md](frontend/README.md).
 
 ```bash
 python -m venv .venv
@@ -81,6 +83,7 @@ app/
   routers/       endpoints HTTP
 alembic/         migraciones
 tests/
+frontend/        aplicación web (ver frontend/README.md)
 ```
 
 El flujo de una petición es siempre `router -> service -> repository -> modelo`. Los routers
