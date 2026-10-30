@@ -9,6 +9,8 @@ cada endpoint queda disponible en `/docs` (Swagger) y `/redoc` al levantar la AP
 
 | Documento | Contenido |
 |---|---|
+| [Instalar Docker en Windows](docs/instalar-docker-windows.md) | Paso a paso para instalar WSL 2 y Docker Desktop |
+| [Despliegue local](docs/despliegue-local.md) | Levantar el sistema, cargar datos, comandos diarios y problemas frecuentes |
 | [Modelo de datos](docs/modelo-de-datos.md) | Diagrama entidad-relación, decisiones de modelado, restricciones y estados de cada entidad |
 | [Patrones de diseño](docs/patrones-de-diseno.md) | State, Strategy y Repository con diagramas de clases; por qué se descartó Singleton |
 | [Arquitectura](docs/arquitectura.md) | Capas, flujo de una petición, manejo de errores, decisiones técnicas y despliegue |
@@ -30,6 +32,8 @@ cada endpoint queda disponible en `/docs` (Swagger) y `/redoc` al levantar la AP
 ## Cómo levantarlo
 
 ### Con Docker (recomendado)
+
+Guía detallada para Windows, incluida la instalación de Docker: [docs/despliegue-local.md](docs/despliegue-local.md).
 
 ```bash
 docker compose up --build
