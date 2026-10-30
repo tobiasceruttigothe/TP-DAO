@@ -35,8 +35,13 @@ def test_duplicados_devuelven_409(client):
         "/socios", json={"dni": "30111222", "nombre": "X", "apellido": "Y", "email": "otro@mail.com"}
     ).status_code == 409
 
-    crear_libro(client)
+    libro = crear_libro(client)
     assert client.post("/libros", json={"isbn": "9789500000001", "titulo": "T", "autor": "A"}).status_code == 409
+
+    sede = client.get("/sedes").json()[0]
+    crear_ejemplar(client, libro["id"], sede["id"], codigo="INV-1")
+    r = client.post("/ejemplares", json={"codigo_inventario": "INV-1", "libro_id": libro["id"], "sede_id": sede["id"]})
+    assert r.status_code == 409
 
 
 def test_inexistente_devuelve_404(client):
