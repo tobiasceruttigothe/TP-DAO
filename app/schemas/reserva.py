@@ -3,6 +3,7 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict
 
 from app.domain.enums import EstadoReserva
+from app.schemas.resumen import EjemplarResumen, LibroResumen, SedeResumen, SocioResumen
 
 
 class ReservaCrear(BaseModel):
@@ -22,3 +23,7 @@ class ReservaRespuesta(BaseModel):
     estado: EstadoReserva
     fecha_reserva: date
     fecha_expiracion: date | None
+    socio: SocioResumen
+    libro: LibroResumen
+    sede: SedeResumen
+    ejemplar: EjemplarResumen | None

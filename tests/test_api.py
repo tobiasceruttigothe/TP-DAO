@@ -76,6 +76,9 @@ def test_flujo_interbibliotecario_por_api(client):
     assert r.status_code == 201, r.text
     prestamo = r.json()
     assert prestamo["tipo"] == "INTERBIBLIOTECARIO"
+    assert prestamo["socio"]["dni"] == "30111222"
+    assert prestamo["ejemplar"]["libro"]["titulo"] == "Rayuela"
+    assert (prestamo["sede_origen"]["nombre"], prestamo["sede_destino"]["nombre"]) == ("Centro", "Norte")
 
     remito = client.get(f"/prestamos/{prestamo['id']}/remitos").json()[0]
     assert client.post(f"/remitos/{remito['id']}/despachar").status_code == 400  # sin empaquetar
@@ -176,3 +179,19 @@ def test_cors_permite_al_frontend(client):
 
     r = client.get("/health", headers={"Origin": "http://sitio-desconocido.com"})
     assert "access-control-allow-origin" not in r.headers
+
+
+def test_busqueda_ignora_tildes_y_comodines(client):
+    client.post("/libros", json={"isbn": "9789500000099", "titulo": "Bestiario", "autor": "Julio Cortázar"})
+    crear_socio(client, dni="30999888", email="lucia@mail.com")
+    client.put(
+        f"/socios/{client.get('/socios').json()['items'][0]['id']}",
+        json={"dni": "30999888", "nombre": "Lucía", "apellido": "Fernández", "email": "lucia@mail.com"},
+    )
+
+    assert client.get("/libros", params={"q": "cortazar"}).json()["total"] == 1
+    assert client.get("/socios", params={"q": "lucia"}).json()["total"] == 1
+    assert client.get("/socios", params={"q": "FERNANDEZ"}).json()["total"] == 1
+    # % y _ se buscan como texto, no como comodines
+    assert client.get("/libros", params={"q": "%"}).json()["total"] == 0
+    assert client.get("/libros", params={"q": "_"}).json()["total"] == 0

@@ -1,7 +1,7 @@
 from sqlalchemy import or_, select
 
 from app.models import Libro
-from app.repositories.base import BaseRepository, Paginacion, ResultadoPaginado
+from app.repositories.base import BaseRepository, Paginacion, ResultadoPaginado, contiene
 
 
 class LibroRepository(BaseRepository[Libro]):
@@ -13,6 +13,5 @@ class LibroRepository(BaseRepository[Libro]):
     def buscar(self, paginacion: Paginacion, texto: str | None = None) -> ResultadoPaginado[Libro]:
         consulta = select(Libro).order_by(Libro.titulo, Libro.id)
         if texto:
-            patron = f"%{texto}%"
-            consulta = consulta.where(or_(Libro.titulo.ilike(patron), Libro.autor.ilike(patron)))
+            consulta = consulta.where(or_(contiene(Libro.titulo, texto), contiene(Libro.autor, texto)))
         return self.paginar(consulta, paginacion)

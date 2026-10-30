@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.enums import EstadoEjemplar, EstadoFisico
+from app.schemas.resumen import LibroResumen, SedeResumen
 
 
 class LibroBase(BaseModel):
@@ -42,6 +43,8 @@ class EjemplarRespuesta(BaseModel):
     sede_id: int
     estado: EstadoEjemplar
     estado_fisico: EstadoFisico
+    libro: LibroResumen
+    sede: SedeResumen
 
 
 class DisponibilidadSede(BaseModel):

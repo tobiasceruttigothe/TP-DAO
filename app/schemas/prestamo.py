@@ -3,6 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.enums import EstadoFisico, EstadoPrestamo, TipoIncidencia, TipoPrestamo, TipoRemito
+from app.schemas.resumen import EjemplarResumen, RemitoResumen, SedeResumen, SocioResumen
 
 
 class PrestamoCrear(BaseModel):
@@ -35,6 +36,10 @@ class PrestamoRespuesta(BaseModel):
     estado_fisico_devolucion: EstadoFisico | None
     multa: float
     observaciones: str | None
+    socio: SocioResumen
+    ejemplar: EjemplarResumen
+    sede_origen: SedeResumen
+    sede_destino: SedeResumen
 
 
 class MovimientoRespuesta(BaseModel):
@@ -61,6 +66,9 @@ class RemitoRespuesta(BaseModel):
     fecha_despacho: datetime | None
     fecha_recepcion: datetime | None
     estado_fisico_recepcion: EstadoFisico | None
+    ejemplar: EjemplarResumen
+    sede_origen: SedeResumen
+    sede_destino: SedeResumen
 
 
 class IncidenciaRespuesta(BaseModel):
@@ -71,6 +79,7 @@ class IncidenciaRespuesta(BaseModel):
     tipo: TipoIncidencia
     descripcion: str | None
     fecha: datetime
+    remito: RemitoResumen
 
 
 class RemitoDetalle(RemitoRespuesta):
