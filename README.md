@@ -5,6 +5,15 @@ TP Integrador 2026 - Desarrollo de Aplicaciones con Objetos (Tema 1).
 Backend en Python con FastAPI, SQLAlchemy y PostgreSQL. La documentación interactiva de
 cada endpoint queda disponible en `/docs` (Swagger) y `/redoc` al levantar la API.
 
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| [Modelo de datos](docs/modelo-de-datos.md) | Diagrama entidad-relación, decisiones de modelado, restricciones y estados de cada entidad |
+| [Patrones de diseño](docs/patrones-de-diseno.md) | State, Strategy y Repository con diagramas de clases; por qué se descartó Singleton |
+| [Arquitectura](docs/arquitectura.md) | Capas, flujo de una petición, manejo de errores, decisiones técnicas y despliegue |
+| [Procesos y reglas de negocio](docs/procesos-y-reglas.md) | Cada proceso y validación de la consigna, dónde se implementa y qué test lo cubre |
+
 ## Stack
 
 | Componente      | Elección                         |

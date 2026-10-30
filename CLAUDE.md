@@ -26,6 +26,8 @@ alembic upgrade head
 - Cualquier cambio de modelo va acompañado de su migración de Alembic.
 - Cada regla de negocio nueva lleva su test.
 - Documentar endpoints con un docstring corto (aparece en Swagger), sin comentarios de más.
+- Si un cambio afecta el modelo, un patrón, un proceso o una regla, actualizar el documento
+  correspondiente en `docs/`. Los diagramas son Mermaid (GitHub los dibuja).
 
 ## Patrones aplicados
 
