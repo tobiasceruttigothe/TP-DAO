@@ -7,6 +7,7 @@ from app.domain.enums import EstadoEjemplar, EstadoReserva
 from app.exceptions import NoEncontradoError, ReglaNegocioError
 from app.models import Ejemplar, Reserva
 from app.repositories import EjemplarRepository, LibroRepository, ReservaRepository
+from app.repositories.base import Paginacion, ResultadoPaginado
 from app.schemas.reserva import ReservaCrear
 from app.services.sede_service import SedeService
 from app.services.socio_service import SocioService
@@ -22,8 +23,10 @@ class ReservaService:
         self.ejemplares = EjemplarRepository(db)
         self.libros = LibroRepository(db)
 
-    def listar(self, socio_id: int | None = None, estado: EstadoReserva | None = None) -> list[Reserva]:
-        return self.repo.listar_filtrado(socio_id, estado)
+    def listar(
+        self, paginacion: Paginacion, socio_id: int | None = None, estado: EstadoReserva | None = None
+    ) -> ResultadoPaginado[Reserva]:
+        return self.repo.listar_filtrado(paginacion, socio_id, estado)
 
     def obtener(self, reserva_id: int) -> Reserva:
         reserva = self.repo.obtener(reserva_id)
@@ -43,7 +46,7 @@ class ReservaService:
             raise ReglaNegocioError("El socio ya tiene una reserva activa para ese libro")
 
         en_sede = [
-            e for e in self.ejemplares.listar_filtrado(libro_id=libro.id, sede_id=sede.id)
+            e for e in self.ejemplares.de_libro_en_sede(libro.id, sede.id)
             if e.estado not in (EstadoEjemplar.BAJA, EstadoEjemplar.EXTRAVIADO)
         ]
         if not en_sede:

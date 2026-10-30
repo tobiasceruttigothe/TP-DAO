@@ -4,6 +4,7 @@ from app.domain.enums import EstadoEjemplar, EstadoFisico
 from app.exceptions import DuplicadoError, NoEncontradoError, ReglaNegocioError
 from app.models import Ejemplar, Libro
 from app.repositories import EjemplarRepository, LibroRepository, SedeRepository
+from app.repositories.base import Paginacion, ResultadoPaginado
 from app.schemas.libro import (
     DisponibilidadLibro,
     DisponibilidadSede,
@@ -26,8 +27,8 @@ class CatalogoService:
 
     # --- Libros ---
 
-    def buscar_libros(self, texto: str | None = None) -> list[Libro]:
-        return self.libros.buscar(texto)
+    def buscar_libros(self, paginacion: Paginacion, texto: str | None = None) -> ResultadoPaginado[Libro]:
+        return self.libros.buscar(paginacion, texto)
 
     def obtener_libro(self, libro_id: int) -> Libro:
         libro = self.libros.obtener(libro_id)
@@ -57,9 +58,13 @@ class CatalogoService:
     # --- Ejemplares ---
 
     def listar_ejemplares(
-        self, libro_id: int | None = None, sede_id: int | None = None, estado: EstadoEjemplar | None = None
-    ) -> list[Ejemplar]:
-        return self.ejemplares.listar_filtrado(libro_id, sede_id, estado)
+        self,
+        paginacion: Paginacion,
+        libro_id: int | None = None,
+        sede_id: int | None = None,
+        estado: EstadoEjemplar | None = None,
+    ) -> ResultadoPaginado[Ejemplar]:
+        return self.ejemplares.listar_filtrado(paginacion, libro_id, sede_id, estado)
 
     def obtener_ejemplar(self, ejemplar_id: int) -> Ejemplar:
         ejemplar = self.ejemplares.obtener(ejemplar_id)

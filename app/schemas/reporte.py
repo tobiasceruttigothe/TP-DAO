@@ -82,6 +82,7 @@ class ReporteEnvios(BaseModel):
     total_finalizados: int
     recibidos_ok: int
     recibidos_con_danio: int
+    recibidos_destruidos: int
     extraviados: int
     cancelados: int
     en_curso: int

@@ -5,11 +5,23 @@ TP Integrador 2026 - Desarrollo de Aplicaciones con Objetos (Tema 1).
 Backend en Python con FastAPI, SQLAlchemy y PostgreSQL. La documentación interactiva de
 cada endpoint queda disponible en `/docs` (Swagger) y `/redoc` al levantar la API.
 
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| [Instalar Docker en Windows](docs/instalar-docker-windows.md) | Paso a paso para instalar WSL 2 y Docker Desktop |
+| [Despliegue local](docs/despliegue-local.md) | Levantar el sistema, cargar datos, comandos diarios y problemas frecuentes |
+| [Modelo de datos](docs/modelo-de-datos.md) | Diagrama entidad-relación, decisiones de modelado, restricciones y estados de cada entidad |
+| [Patrones de diseño](docs/patrones-de-diseno.md) | State, Strategy y Repository con diagramas de clases; por qué se descartó Singleton |
+| [Arquitectura](docs/arquitectura.md) | Capas, flujo de una petición, manejo de errores, decisiones técnicas y despliegue |
+| [Procesos y reglas de negocio](docs/procesos-y-reglas.md) | Cada proceso y validación de la consigna, dónde se implementa y qué test lo cubre |
+
 ## Stack
 
 | Componente      | Elección                         |
 |-----------------|----------------------------------|
 | API             | FastAPI                          |
+| Frontend        | React 18 + Vite, Ant Design      |
 | ORM             | SQLAlchemy 2.0                   |
 | Base de datos   | PostgreSQL 16                    |
 | Migraciones     | Alembic                          |
@@ -22,12 +34,16 @@ cada endpoint queda disponible en `/docs` (Swagger) y `/redoc` al levantar la AP
 
 ### Con Docker (recomendado)
 
+Guía detallada para Windows, incluida la instalación de Docker: [docs/despliegue-local.md](docs/despliegue-local.md).
+
 ```bash
 docker compose up --build
 ```
 
-Levanta Postgres y la API en `http://localhost:8000`. Al iniciar, el contenedor aplica las
-migraciones pendientes. Para cargar datos de ejemplo:
+Levanta Postgres, la API en `http://localhost:8000` y el frontend en `http://localhost:3000`. Al
+iniciar, la API aplica las migraciones pendientes. Para cargar datos de ejemplo (sedes, socios, catálogo y un escenario con
+préstamos devueltos, activos y vencidos, multas, envíos en distintos estados, incidencias y
+reservas, para que los reportes muestren información):
 
 ```bash
 docker compose exec api python -m app.seed
@@ -41,7 +57,8 @@ docker compose exec api pytest
 
 ### Sin Docker
 
-Requiere Python 3.12+ y un Postgres corriendo.
+Requiere Python 3.12+ y un Postgres corriendo (con las extensiones estándar, que incluyen
+`unaccent`). El frontend se levanta aparte: ver [frontend/README.md](frontend/README.md).
 
 ```bash
 python -m venv .venv
@@ -66,6 +83,7 @@ app/
   routers/       endpoints HTTP
 alembic/         migraciones
 tests/
+frontend/        aplicación web (ver frontend/README.md)
 ```
 
 El flujo de una petición es siempre `router -> service -> repository -> modelo`. Los routers
@@ -170,6 +188,8 @@ Se evaluó usar Singleton para la conexión, pero no se aplicó:
 - Las reservas se atienden por orden de llegada. Cuando se libera un ejemplar se aparta para la
   primera reserva pendiente, que tiene 3 días para retirarlo.
 - Un ejemplar devuelto o recibido dañado pasa a EN_REPARACION y no circula hasta marcarlo reparado.
+  Si llega o se devuelve destruido se da de baja.
+- Los extravíos, daños y destrucciones en envíos quedan registrados como incidencias.
 
 Los valores numéricos se configuran por variables de entorno (ver `.env.example`).
 
@@ -181,6 +201,7 @@ Los valores numéricos se configuran por variables de entorno (ver `.env.example
 | GET/PUT | `/sedes/{id}` | Ver / modificar sede |
 | PATCH | `/sedes/{id}/baja`, `/sedes/{id}/alta` | Dar de baja / reactivar |
 | GET/POST | `/socios` | Listar (búsqueda con `q`) / crear socios |
+| GET | `/socios/{id}/historial` | Historial de lecturas del socio |
 | GET/PUT | `/socios/{id}` | Ver / modificar socio |
 | PATCH | `/socios/{id}/inhabilitar`, `/socios/{id}/habilitar` | Cambiar habilitación |
 | GET/POST | `/libros` | Buscar / crear libros |
@@ -194,6 +215,7 @@ Los valores numéricos se configuran por variables de entorno (ver `.env.example
 | POST | `/prestamos/{id}/devolucion` | Registrar devolución |
 | GET | `/remitos`, `/remitos/{id}`, `/remitos/numero/{numero}` | Consultar remitos con su historial |
 | POST | `/remitos/{id}/empaquetar` `/despachar` `/recibir` `/extraviar` `/cancelar` | Transiciones |
+| GET | `/incidencias` | Daños, destrucciones y extravíos de envíos |
 | GET/POST | `/reservas` | Listar / crear reservas |
 | GET | `/reservas/{id}` | Ver reserva |
 | POST | `/reservas/{id}/cancelar` | Cancelar reserva |
@@ -212,6 +234,10 @@ Los valores numéricos se configuran por variables de entorno (ver `.env.example
 
 Códigos de error: `400` regla de negocio, `404` no encontrado, `409` duplicado,
 `422` datos de entrada inválidos.
+
+Los listados (salvo `/sedes`) están paginados con `?pagina=&tamanio=` y devuelven
+`{items, total, pagina, tamanio, paginas}`. La API acepta llamadas del frontend desde los orígenes
+configurados en `CORS_ORIGENES` (ver `.env.example`).
 
 ## Tests
 

@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.config import settings
 from app.exceptions import BibliotecaError, DuplicadoError, NoEncontradoError, ReglaNegocioError
 from app.routers import catalogo, prestamos, remitos, reportes, reservas, sedes, socios
 
@@ -10,12 +12,20 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.lista_cors_origenes,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(sedes.router)
 app.include_router(socios.router)
 app.include_router(catalogo.libros_router)
 app.include_router(catalogo.ejemplares_router)
 app.include_router(prestamos.router)
 app.include_router(remitos.router)
+app.include_router(remitos.incidencias_router)
 app.include_router(reservas.router)
 app.include_router(reportes.router)
 

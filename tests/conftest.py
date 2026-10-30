@@ -2,7 +2,7 @@ import os
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from app.database import Base, get_db
@@ -23,6 +23,8 @@ TEST_DATABASE_URL = os.getenv(
 def engine():
     engine = create_engine(TEST_DATABASE_URL)
     Base.metadata.drop_all(engine)
+    with engine.begin() as conexion:
+        conexion.execute(text("CREATE EXTENSION IF NOT EXISTS unaccent"))
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)

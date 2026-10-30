@@ -1,7 +1,7 @@
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
 from app.models import Socio
-from app.repositories.base import BaseRepository
+from app.repositories.base import BaseRepository, Paginacion, ResultadoPaginado, contiene
 
 
 class SocioRepository(BaseRepository[Socio]):
@@ -11,15 +11,16 @@ class SocioRepository(BaseRepository[Socio]):
         return self.db.scalar(select(Socio).where(Socio.dni == dni))
 
     def buscar_por_email(self, email: str) -> Socio | None:
-        return self.db.scalar(select(Socio).where(Socio.email.ilike(email)))
+        return self.db.scalar(select(Socio).where(func.lower(Socio.email) == email.lower()))
 
-    def listar_filtrado(self, texto: str | None = None, habilitado: bool | None = None) -> list[Socio]:
-        consulta = select(Socio).order_by(Socio.apellido, Socio.nombre)
+    def listar_filtrado(
+        self, paginacion: Paginacion, texto: str | None = None, habilitado: bool | None = None
+    ) -> ResultadoPaginado[Socio]:
+        consulta = select(Socio).order_by(Socio.apellido, Socio.nombre, Socio.id)
         if texto:
-            patron = f"%{texto}%"
             consulta = consulta.where(
-                or_(Socio.nombre.ilike(patron), Socio.apellido.ilike(patron), Socio.dni.ilike(patron))
+                or_(contiene(Socio.nombre, texto), contiene(Socio.apellido, texto), contiene(Socio.dni, texto))
             )
         if habilitado is not None:
             consulta = consulta.where(Socio.habilitado == habilitado)
-        return list(self.db.scalars(consulta))
+        return self.paginar(consulta, paginacion)

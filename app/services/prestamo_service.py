@@ -3,11 +3,12 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.domain.enums import EstadoEjemplar, EstadoPrestamo, EstadoReserva, TipoPrestamo, TipoRemito
+from app.domain.enums import EstadoEjemplar, EstadoFisico, EstadoPrestamo, EstadoReserva, TipoPrestamo, TipoRemito
 from app.domain.multas import CalculadorMulta, crear_estrategia
 from app.exceptions import NoEncontradoError, ReglaNegocioError
 from app.models import Prestamo
 from app.repositories import EjemplarRepository, PrestamoRepository, ReservaRepository
+from app.repositories.base import Paginacion, ResultadoPaginado
 from app.schemas.prestamo import DevolucionCrear, PrestamoCrear
 from app.services.remito_service import RemitoService
 from app.services.reserva_service import ReservaService
@@ -25,8 +26,14 @@ class PrestamoService:
             crear_estrategia(settings.multa_estrategia, settings.multa_monto_diario)
         )
 
-    def listar(self, socio_id: int | None = None, estado: EstadoPrestamo | None = None) -> list[Prestamo]:
-        return self.repo.listar_filtrado(socio_id, estado)
+    def listar(
+        self, paginacion: Paginacion, socio_id: int | None = None, estado: EstadoPrestamo | None = None
+    ) -> ResultadoPaginado[Prestamo]:
+        return self.repo.listar_filtrado(paginacion, socio_id, estado)
+
+    def historial_de_socio(self, socio_id: int, paginacion: Paginacion) -> ResultadoPaginado[Prestamo]:
+        SocioService(self.db).obtener(socio_id)
+        return self.repo.historial_de_socio(socio_id, paginacion)
 
     def obtener(self, prestamo_id: int) -> Prestamo:
         prestamo = self.repo.obtener(prestamo_id)
@@ -100,7 +107,10 @@ class PrestamoService:
 
         ejemplar = prestamo.ejemplar
         ejemplar.estado_fisico = datos.estado_fisico
-        if prestamo.es_interbibliotecario:
+        if datos.estado_fisico == EstadoFisico.DESTRUIDO:
+            # No se envia de vuelta un ejemplar inservible.
+            ejemplar.cambiar_estado(EstadoEjemplar.BAJA)
+        elif prestamo.es_interbibliotecario:
             # Se devuelve en la sede destino y tiene que volver a su sede de origen.
             ejemplar.cambiar_estado(EstadoEjemplar.EN_TRANSITO)
             RemitoService(self.db).generar(prestamo, TipoRemito.RETORNO)

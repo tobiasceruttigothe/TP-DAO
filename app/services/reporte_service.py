@@ -203,18 +203,20 @@ class ReporteService:
 
         recibidos = [r for r in remitos if r.estado == Recibido.nombre]
         con_danio = sum(1 for r in recibidos if r.estado_fisico_recepcion == EstadoFisico.DANADO)
+        destruidos = sum(1 for r in recibidos if r.estado_fisico_recepcion == EstadoFisico.DESTRUIDO)
         extraviados = sum(1 for r in remitos if r.estado == Extraviado.nombre)
         cancelados = sum(1 for r in remitos if r.estado == Cancelado.nombre)
         en_curso = len(remitos) - len(recibidos) - extraviados - cancelados
 
         # Los cancelados no llegaron a viajar, por eso no cuentan para la tasa.
         viajaron = len(recibidos) + extraviados
-        recibidos_ok = len(recibidos) - con_danio
-        incidencias = con_danio + extraviados
+        recibidos_ok = len(recibidos) - con_danio - destruidos
+        incidencias = con_danio + destruidos + extraviados
         return ReporteEnvios(
             total_finalizados=viajaron + cancelados,
             recibidos_ok=recibidos_ok,
             recibidos_con_danio=con_danio,
+            recibidos_destruidos=destruidos,
             extraviados=extraviados,
             cancelados=cancelados,
             en_curso=en_curso,
@@ -235,11 +237,7 @@ class ReporteService:
         resultado = []
         for (origen, destino), remitos in grupos.items():
             horas = [r.horas_en_transito for r in remitos if r.horas_en_transito is not None]
-            incidencias = sum(
-                1
-                for r in remitos
-                if r.estado == Extraviado.nombre or r.estado_fisico_recepcion == EstadoFisico.DANADO
-            )
+            incidencias = sum(1 for r in remitos if r.tuvo_incidencia)
             resultado.append(
                 MovimientoSedesItem(
                     sede_origen=origen,

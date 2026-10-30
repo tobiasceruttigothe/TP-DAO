@@ -34,8 +34,11 @@ class Ejemplar(Base):
         self.estado = estado
 
     def liberar(self):
-        """Vuelve a quedar disponible, salvo que haya llegado danado."""
-        if self.estado_fisico == EstadoFisico.DANADO:
+        """Vuelve a quedar disponible segun su estado fisico: danado va a reparacion
+        y destruido se da de baja."""
+        if self.estado_fisico == EstadoFisico.DESTRUIDO:
+            self.estado = EstadoEjemplar.BAJA
+        elif self.estado_fisico == EstadoFisico.DANADO:
             self.estado = EstadoEjemplar.EN_REPARACION
         else:
             self.estado = EstadoEjemplar.DISPONIBLE

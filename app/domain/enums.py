@@ -15,6 +15,13 @@ class EstadoFisico(str, Enum):
     BUENO = "BUENO"
     REGULAR = "REGULAR"
     DANADO = "DANADO"
+    DESTRUIDO = "DESTRUIDO"
+
+
+class TipoIncidencia(str, Enum):
+    DANIO = "DANIO"
+    DESTRUCCION = "DESTRUCCION"
+    EXTRAVIO = "EXTRAVIO"
 
 
 class TipoPrestamo(str, Enum):

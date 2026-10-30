@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.exceptions import DuplicadoError, NoEncontradoError, ReglaNegocioError
 from app.models import Socio
 from app.repositories import SocioRepository
+from app.repositories.base import Paginacion, ResultadoPaginado
 from app.schemas.socio import SocioActualizar, SocioCrear
 
 
@@ -11,8 +12,10 @@ class SocioService:
         self.db = db
         self.repo = SocioRepository(db)
 
-    def listar(self, texto: str | None = None, habilitado: bool | None = None) -> list[Socio]:
-        return self.repo.listar_filtrado(texto, habilitado)
+    def listar(
+        self, paginacion: Paginacion, texto: str | None = None, habilitado: bool | None = None
+    ) -> ResultadoPaginado[Socio]:
+        return self.repo.listar_filtrado(paginacion, texto, habilitado)
 
     def obtener(self, socio_id: int) -> Socio:
         socio = self.repo.obtener(socio_id)
