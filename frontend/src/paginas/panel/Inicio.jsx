@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { Button, Card, Col, Row, Statistic, Table, Tag } from 'antd'
+import { App, Button, Card, Col, Popconfirm, Row, Statistic, Table, Tag } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
-import { reportesApi } from '../../api'
+import { procesosApi, reportesApi } from '../../api'
 import useCarga from '../../hooks/useCarga'
+import useAccion from '../../hooks/useAccion'
 import Encabezado from '../../componentes/Encabezado'
 import { diasHasta, fecha, fechaHora, moneda } from '../../utiles/formato'
 
@@ -24,7 +25,21 @@ function Vencimiento({ valor }) {
 
 export default function Inicio() {
   const navegar = useNavigate()
-  const { datos, cargando } = useCarga(cargarResumen)
+  const { message } = App.useApp()
+  const { datos, cargando, recargar } = useCarga(cargarResumen)
+  const { ejecutar, ejecutando } = useAccion()
+
+  async function procesarVencimientos() {
+    const resultado = await ejecutar(() => procesosApi.vencimientos())
+    if (!resultado) return
+    const socios = resultado.socios_inhabilitados.map((s) => `${s.nombre} ${s.apellido}`).join(', ')
+    message.info(
+      `${resultado.reservas_vencidas} reserva(s) vencida(s). ` +
+        (socios ? `Inhabilitados por atraso: ${socios}.` : 'Ningún socio inhabilitado.'),
+      6,
+    )
+    recargar()
+  }
   const activos = datos?.activos
   const vencidos = datos?.vencidos
   const envios = datos?.envios
@@ -32,6 +47,13 @@ export default function Inicio() {
   return (
     <>
       <Encabezado titulo="Inicio" descripcion="Estado general de la red">
+        <Popconfirm
+          title="¿Procesar vencimientos ahora?"
+          description="Vence las reservas no retiradas e inhabilita a los socios con atrasos largos. El sistema lo hace solo cada hora."
+          onConfirm={procesarVencimientos}
+        >
+          <Button loading={ejecutando}>Procesar vencimientos</Button>
+        </Popconfirm>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => navegar('/prestamos/nuevo')}>
           Nuevo préstamo
         </Button>

@@ -6,7 +6,7 @@ import useListado from '../../hooks/useListado'
 import useAccion from '../../hooks/useAccion'
 import Encabezado from '../../componentes/Encabezado'
 import EstadoTag from '../../componentes/EstadoTag'
-import Ruta from '../../componentes/Ruta'
+import { Atraso, Multa } from '../../componentes/AtrasoMulta'
 import { fecha, moneda, nombreSocio } from '../../utiles/formato'
 
 function PrestamosDelSocio({ socioId }) {
@@ -22,7 +22,8 @@ function PrestamosDelSocio({ socioId }) {
         { title: 'Libro', render: (_, p) => p.ejemplar.libro.titulo },
         { title: 'Estado', dataIndex: 'estado', render: (v) => <EstadoTag tipo="prestamo" valor={v} /> },
         { title: 'Vence', dataIndex: 'fecha_vencimiento', render: fecha },
-        { title: 'Sedes', render: (_, p) => <Ruta origen={p.sede_origen} destino={p.sede_destino} /> },
+        { title: 'Atraso', render: (_, p) => <Atraso prestamo={p} /> },
+        { title: 'Multa', render: (_, p) => <Multa prestamo={p} /> },
       ]}
     />
   )
@@ -133,8 +134,20 @@ export default function Socios() {
           { title: 'Alta', dataIndex: 'fecha_alta', render: fecha },
           {
             title: 'Estado',
-            render: (_, s) =>
-              s.habilitado ? <Tag color="green">Habilitado</Tag> : <Tag color="red" title={s.motivo_inhabilitacion}>Inhabilitado</Tag>,
+            render: (_, s) => (
+              <>
+                <Space size={4} wrap>
+                  {s.habilitado ? <Tag color="green">Habilitado</Tag> : <Tag color="red">Inhabilitado</Tag>}
+                  {s.tiene_vencidos && <Tag color="orange">Con vencidos</Tag>}
+                </Space>
+                {!s.habilitado && s.motivo_inhabilitacion && (
+                  <div style={{ fontSize: 12, color: '#8c8c8c', maxWidth: 280 }}>{s.motivo_inhabilitacion}</div>
+                )}
+                {s.habilitado && s.tiene_vencidos && (
+                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>No puede pedir hasta devolver</div>
+                )}
+              </>
+            ),
           },
           {
             title: '',

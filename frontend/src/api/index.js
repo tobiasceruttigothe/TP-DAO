@@ -63,6 +63,10 @@ export const reservasApi = {
   procesarVencidas: () => cliente.post('/reservas/procesar-vencidas'),
 }
 
+export const procesosApi = {
+  vencimientos: () => cliente.post('/procesos/vencimientos'),
+}
+
 export const reportesApi = {
   activosYTransito: () => cliente.get('/reportes/prestamos-activos'),
   vencidosYMultas: (params) => get('/reportes/vencidos-multas', params),

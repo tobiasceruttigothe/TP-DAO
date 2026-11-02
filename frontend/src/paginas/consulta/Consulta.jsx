@@ -4,7 +4,7 @@ import { librosApi, prestamosApi, reservasApi, sociosApi } from '../../api'
 import useListado from '../../hooks/useListado'
 import useAccion from '../../hooks/useAccion'
 import EstadoTag from '../../componentes/EstadoTag'
-import { diasHasta, fecha } from '../../utiles/formato'
+import { diasHasta, fecha, moneda } from '../../utiles/formato'
 
 const PRESTAMOS_EN_CURSO = ['SOLICITADO', 'EN_TRANSITO', 'ACTIVO']
 const RESERVAS_ACTIVAS = ['PENDIENTE', 'DISPONIBLE']
@@ -68,7 +68,7 @@ function BuscarLibros() {
 function Vencimiento({ prestamo }) {
   if (prestamo.estado !== 'ACTIVO') return <EstadoTag tipo="prestamo" valor={prestamo.estado} />
   const dias = diasHasta(prestamo.fecha_vencimiento)
-  if (dias < 0) return <Tag color="red">Vencido hace {-dias} día(s)</Tag>
+  if (dias < 0) return <Tag color="red">Vencido hace {-dias} día(s) · multa {moneda(prestamo.multa_actual)}</Tag>
   if (dias === 0) return <Tag color="orange">Vence hoy</Tag>
   return <Tag color={dias <= 3 ? 'orange' : 'blue'}>Vence el {fecha(prestamo.fecha_vencimiento)}</Tag>
 }
@@ -122,7 +122,7 @@ function MisPrestamos() {
               showIcon
               style={{ marginBottom: 16 }}
               message="Tu cuenta está inhabilitada para nuevos préstamos."
-              description="Acercate a cualquier sede para regularizar tu situación."
+              description={`${resultado.socio.motivo_inhabilitacion ?? ''} Acercate a cualquier sede para regularizar tu situación.`}
             />
           )}
           <Card title={`${resultado.socio.nombre} ${resultado.socio.apellido}`} style={{ marginBottom: 16 }}>

@@ -9,6 +9,7 @@ import useAccion from '../../hooks/useAccion'
 import Encabezado from '../../componentes/Encabezado'
 import EstadoTag from '../../componentes/EstadoTag'
 import Ruta from '../../componentes/Ruta'
+import { Atraso, Multa } from '../../componentes/AtrasoMulta'
 import { SelectorSocio } from '../../componentes/Selectores'
 import { opcionesDe } from '../../utiles/estados'
 import { diasHasta, fecha, fechaApi, moneda, nombreSocio } from '../../utiles/formato'
@@ -59,6 +60,14 @@ function Devolucion({ prestamo, onCerrar, onDevuelto }) {
           <b>{prestamo.ejemplar.libro.titulo}</b> ({prestamo.ejemplar.codigo_inventario}) — {nombreSocio(prestamo.socio)}
           <br />
           Vencimiento: {fecha(prestamo.fecha_vencimiento)}
+          {prestamo.dias_atraso_actual > 0 && (
+            <>
+              <br />
+              <b>
+                Atraso: {prestamo.dias_atraso_actual} días · multa a hoy {moneda(prestamo.multa_actual)}
+              </b>
+            </>
+          )}
         </p>
       )}
       <Form form={form} layout="vertical" initialValues={{ estado_fisico: 'BUENO', fecha_devolucion: dayjs() }}>
@@ -158,7 +167,8 @@ export default function Prestamos() {
           { title: 'Estado', dataIndex: 'estado', render: (v) => <EstadoTag tipo="prestamo" valor={v} /> },
           { title: 'Solicitado', dataIndex: 'fecha_solicitud', render: fecha },
           { title: 'Vence', dataIndex: 'fecha_vencimiento', render: fecha },
-          { title: 'Multa', dataIndex: 'multa', render: (m) => (m ? moneda(m) : '-') },
+          { title: 'Atraso', render: (_, p) => <Atraso prestamo={p} /> },
+          { title: 'Multa', render: (_, p) => <Multa prestamo={p} /> },
           {
             title: '',
             key: 'acciones',
