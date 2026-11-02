@@ -1,5 +1,8 @@
 import os
 
+# Los tests no deben disparar el proceso periodico contra la base real
+os.environ["PROCESO_AUTOMATICO"] = "false"
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text

@@ -35,6 +35,8 @@ class PrestamoRespuesta(BaseModel):
     fecha_devolucion: date | None
     estado_fisico_devolucion: EstadoFisico | None
     multa: float
+    dias_atraso_actual: int = Field(description="Atraso a hoy si esta activo; el que tuvo si se devolvio")
+    multa_actual: float = Field(description="Multa cobrada, o la que se cobraria si se devolviera hoy")
     observaciones: str | None
     socio: SocioResumen
     ejemplar: EjemplarResumen

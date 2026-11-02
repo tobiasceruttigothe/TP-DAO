@@ -48,6 +48,13 @@ class CalculadorMulta:
         return self._estrategia.calcular(dias_atraso)
 
 
+def calculador_configurado() -> CalculadorMulta:
+    """Calculador con la estrategia y el monto definidos en la configuracion."""
+    from app.config import settings
+
+    return CalculadorMulta(crear_estrategia(settings.multa_estrategia, settings.multa_monto_diario))
+
+
 def crear_estrategia(nombre: str, monto_diario: float) -> EstrategiaMulta:
     estrategias = {
         "fija": MultaFija,

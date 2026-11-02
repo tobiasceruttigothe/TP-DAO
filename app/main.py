@@ -1,15 +1,28 @@
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.exceptions import BibliotecaError, DuplicadoError, NoEncontradoError, ReglaNegocioError
-from app.routers import catalogo, prestamos, remitos, reportes, reservas, sedes, socios
+from app.routers import catalogo, prestamos, procesos, remitos, reportes, reservas, sedes, socios
+from app.tareas import proceso_periodico
+
+@asynccontextmanager
+async def ciclo_de_vida(app: FastAPI):
+    tarea = asyncio.create_task(proceso_periodico()) if settings.proceso_automatico else None
+    yield
+    if tarea:
+        tarea.cancel()
+
 
 app = FastAPI(
     title="Biblioteca - Prestamos Interbibliotecarios",
     description="API del TP integrador de DAO.",
     version="1.0.0",
+    lifespan=ciclo_de_vida,
 )
 
 app.add_middleware(
@@ -28,6 +41,7 @@ app.include_router(remitos.router)
 app.include_router(remitos.incidencias_router)
 app.include_router(reservas.router)
 app.include_router(reportes.router)
+app.include_router(procesos.router)
 
 _CODIGOS = {
     NoEncontradoError: 404,

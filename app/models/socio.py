@@ -31,6 +31,12 @@ class Socio(Base):
         self.motivo_inhabilitacion = None
 
     @property
+    def tiene_vencidos(self) -> bool:
+        """Tiene algun prestamo activo pasado de fecha: no puede pedir otro hasta devolverlo."""
+        hoy = date.today()
+        return any(p.esta_vencido(hoy) for p in self.prestamos)
+
+    @property
     def nombre_completo(self) -> str:
         return f"{self.nombre} {self.apellido}"
 

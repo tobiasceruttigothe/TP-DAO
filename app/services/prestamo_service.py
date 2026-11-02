@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.domain.enums import EstadoEjemplar, EstadoFisico, EstadoPrestamo, EstadoReserva, TipoPrestamo, TipoRemito
-from app.domain.multas import CalculadorMulta, crear_estrategia
+from app.domain.multas import CalculadorMulta, calculador_configurado
 from app.exceptions import NoEncontradoError, ReglaNegocioError
 from app.models import Prestamo
 from app.repositories import EjemplarRepository, PrestamoRepository, ReservaRepository
@@ -22,9 +22,7 @@ class PrestamoService:
         self.repo = PrestamoRepository(db)
         self.ejemplares = EjemplarRepository(db)
         self.reservas = ReservaRepository(db)
-        self.calculador = calculador or CalculadorMulta(
-            crear_estrategia(settings.multa_estrategia, settings.multa_monto_diario)
-        )
+        self.calculador = calculador or calculador_configurado()
 
     def listar(
         self, paginacion: Paginacion, socio_id: int | None = None, estado: EstadoPrestamo | None = None
