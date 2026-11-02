@@ -142,6 +142,19 @@ parciales e ignoran mayúsculas y tildes: "cortazar" encuentra "Cortázar". Usan
 escriba el usuario se buscan como texto, no como comodines (`contiene()` en
 `app/repositories/base.py`).
 
+## Tareas periódicas
+
+El proceso de vencimientos (reservas no retiradas e inhabilitación por atraso) corre dentro de la
+misma API: al arrancar, `app/main.py` lanza una tarea (`app/tareas.py`) que lo ejecuta y después
+espera `INTERVALO_PROCESO_MINUTOS` para repetirlo. Cada ejecución abre su propia sesión de base de
+datos. Si falla una vez (por ejemplo, porque la base todavía no responde), se registra en el log y
+se reintenta en la siguiente vuelta.
+
+Se eligió así en lugar de un programador externo (cron) para no sumar otro servicio. La
+contrapartida es que, si se levantaran varias instancias de la API, cada una lo ejecutaría; el
+proceso no daña nada si corre dos veces (un socio ya inhabilitado no se vuelve a procesar), pero
+con una sola instancia, como en este proyecto, no ocurre.
+
 ## Sesión y transacciones
 
 - `app/database.py` crea el `engine` una sola vez y define `get_db()`, que abre una sesión por
@@ -182,6 +195,9 @@ Todo se configura por variables de entorno (`app/config.py`, ejemplo en `.env.ex
 | `DIAS_VALIDEZ_RESERVA` | 3 | Días para retirar una reserva disponible |
 | `MULTA_ESTRATEGIA` | `fija` | `fija` o `escalonada` |
 | `MULTA_MONTO_DIARIO` | 500 | Monto base de la multa |
+| `DIAS_ATRASO_INHABILITACION` | 30 | Días de atraso para inhabilitar automáticamente al socio |
+| `PROCESO_AUTOMATICO` | `true` | Si la API corre sola el proceso de vencimientos |
+| `INTERVALO_PROCESO_MINUTOS` | 60 | Cada cuánto lo corre |
 
 ## Despliegue
 
@@ -189,6 +205,7 @@ Todo se configura por variables de entorno (`app/config.py`, ejemplo en `.env.ex
 flowchart LR
     subgraph docker compose
         WEB[web<br/>nginx:1.27-alpine<br/>puerto 3000] --> API
+        PGA[pgadmin<br/>puerto 5050] --> DB
         API[api<br/>python:3.12-slim<br/>puerto 8000] -- espera healthcheck --> DB[(db<br/>postgres:16-alpine<br/>puerto 5432)]
         DB --- VOL[(volumen pgdata)]
     end
@@ -203,6 +220,8 @@ flowchart LR
   (`frontend/nginx.conf`). La URL de la API se fija al compilar (`VITE_API_URL`). Nginx devuelve
   `index.html` para cualquier ruta, así funcionan las direcciones del panel (`/remitos/3`) al
   recargar la página.
+- `pgadmin`: administrador de la base desde el navegador. Viene con la conexión a `db` ya
+  configurada (`docker/pgadmin-servers.json`) y en modo escritorio, sin pantalla de login.
 
 ## Tests
 

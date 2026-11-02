@@ -43,8 +43,9 @@ Qué hace:
 - `--build` construye las imágenes de la API y del frontend (la primera vez tarda unos minutos
   porque descarga Python, Node y las librerías; las siguientes es mucho más rápido).
 - `-d` lo deja corriendo en segundo plano y devuelve la consola.
-- Levanta tres contenedores: `db` (PostgreSQL), `api` (el backend) y `web` (el frontend). La API
-  espera a que la base esté lista y, al arrancar, crea o actualiza las tablas solas (migraciones).
+- Levanta cuatro contenedores: `db` (PostgreSQL), `api` (el backend), `web` (el frontend) y
+  `pgadmin` (para ver la base). La API espera a que la base esté lista y, al arrancar, crea o
+  actualiza las tablas solas (migraciones).
 
 Verificar que estén corriendo:
 
@@ -52,7 +53,7 @@ Verificar que estén corriendo:
 docker compose ps
 ```
 
-Los tres servicios tienen que figurar como `running` (la base, además, `healthy`).
+Los cuatro servicios tienen que figurar como `running` (la base, además, `healthy`).
 
 ## 3. Cargar datos de ejemplo
 
@@ -69,6 +70,7 @@ datos, no hace nada.
 | Qué | Dónde |
 |---|---|
 | **Sistema (panel del personal)** | http://localhost:3000 |
+| pgAdmin (ver la base de datos) | http://localhost:5050 |
 | Consulta para socios | http://localhost:3000/consulta |
 | Documentación interactiva de la API (Swagger) | http://localhost:8000/docs |
 | Documentación alternativa (ReDoc) | http://localhost:8000/redoc |
@@ -78,7 +80,8 @@ En Swagger se puede probar cada endpoint: abrir uno, **Try it out**, completar l
 **Execute**. Por ejemplo, `GET /reportes/prestamos-activos`.
 
 Con los datos de ejemplo, en la consulta para socios se puede probar con el DNI `39666777`
-(tiene un préstamo vencido) o `36888999` (tiene una reserva lista para retirar).
+(tiene un préstamo vencido), `37999000` (inhabilitado por atraso) o `36888999` (tiene una
+reserva lista para retirar).
 
 Para trabajar en el código del frontend con recarga automática, ver
 [frontend/README.md](../frontend/README.md).
@@ -100,16 +103,73 @@ Usan una base separada (`biblioteca_test`), así que no tocan los datos cargados
 | Ver qué está corriendo | `docker compose ps` |
 | Ver los logs de la API en vivo (`Ctrl + C` para salir) | `docker compose logs -f api` |
 | Reconstruir solo el frontend | `docker compose up --build -d web` |
-| Actualizar después de un `git pull` | `docker compose up --build -d` |
+| Actualizar después de un `git pull` | ver [Actualizar a una versión nueva](#actualizar-a-una-versión-nueva) |
 | Borrar la base y empezar de cero | `docker compose down -v` y después levantar y cargar el seed de nuevo |
 | Abrir una consola de la base | `docker compose exec db psql -U biblioteca` (salir con `\q`) |
 
-Después de un `git pull` siempre conviene usar `--build`: si cambió el código o las librerías, la
-imagen se reconstruye, y si hay migraciones nuevas se aplican solas al arrancar.
+## Actualizar a una versión nueva
 
-## Conectarse a la base con un cliente gráfico (opcional)
+Cada vez que se baja código nuevo con `git pull`, los contenedores siguen corriendo la versión
+vieja hasta que se reconstruyen. Desde la carpeta del proyecto:
 
-Con DBeaver, pgAdmin o la extensión de VS Code:
+```powershell
+git pull
+docker compose down
+docker compose up --build -d
+```
+
+- `down` detiene y borra los contenedores viejos. **Los datos de la base se conservan**, porque
+  viven en un volumen aparte.
+- `up --build` reconstruye las imágenes con el código nuevo. Si hay migraciones nuevas, la API
+  las aplica sola al arrancar.
+
+Si además se quiere **empezar con la base limpia** (por ejemplo, porque cambiaron los datos de
+ejemplo o la base quedó con datos de prueba rotos), agregar `-v`, que también borra el volumen de
+la base, y volver a cargar el seed:
+
+```powershell
+docker compose down -v
+docker compose up --build -d
+docker compose exec api python -m app.seed
+```
+
+> `-v` borra **todos** los datos cargados. Usarlo solo si no hay nada que conservar.
+
+Si después de actualizar algo se ve raro (por ejemplo, una pantalla vieja), forzar una
+reconstrucción completa con `docker compose build --no-cache` y luego `docker compose up -d`. En el
+navegador, `Ctrl + F5` recarga la página sin la caché.
+
+## Ver y editar la base de datos
+
+### Con pgAdmin (incluido)
+
+El `docker compose` levanta también **pgAdmin**, un administrador de PostgreSQL que se usa desde
+el navegador:
+
+1. Abrir http://localhost:5050 (la primera vez tarda unos segundos en cargar).
+2. En el panel izquierdo, desplegar **Servers → Biblioteca**. La conexión ya viene configurada.
+3. Cuando pida la contraseña, poner `biblioteca` (se puede tildar *Save password*).
+4. Las tablas están en **Databases → biblioteca → Schemas → public → Tables**. Clic derecho
+   sobre una tabla → **View/Edit Data** para ver o editar filas, o **Tools → Query Tool** para
+   escribir SQL.
+
+> **Cuidado al editar datos a mano.** Lo que se cambia directo en la base se saltea todas las
+> validaciones del sistema: se puede prestar un ejemplar ya prestado, cambiar el estado de un
+> remito sin dejar trazabilidad o dejar datos inconsistentes que rompen los reportes. Para cargar
+> datos conviene usar el sistema o Swagger (http://localhost:8000/docs); la base directa sirve
+> para consultar o corregir algo puntual.
+
+### Por consola
+
+```powershell
+docker compose exec db psql -U biblioteca
+```
+
+Por ejemplo `SELECT * FROM socios;`. Se sale con `\q`.
+
+### Con otro programa
+
+Con DBeaver o la extensión de PostgreSQL de VS Code:
 
 | Campo | Valor |
 |---|---|
@@ -118,6 +178,8 @@ Con DBeaver, pgAdmin o la extensión de VS Code:
 | Base | `biblioteca` |
 | Usuario | `biblioteca` |
 | Contraseña | `biblioteca` |
+
+Dentro de pgAdmin el host es `db` (el nombre del contenedor), no `localhost`.
 
 ## Cambiar puertos
 
