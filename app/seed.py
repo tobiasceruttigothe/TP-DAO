@@ -17,6 +17,7 @@ from app.schemas.sede import SedeCrear
 from app.schemas.socio import SocioCrear
 from app.services.catalogo_service import CatalogoService
 from app.services.prestamo_service import PrestamoService
+from app.services.proceso_service import ProcesoVencimientos
 from app.services.remito_service import RemitoService
 from app.services.reserva_service import ReservaService
 from app.services.sede_service import SedeService
@@ -224,7 +225,10 @@ class CargaDeEjemplo:
         servicio.crear(ReservaCrear(socio_id=joaquin.id, libro_id=martin_fierro.id, sede_id=central.id))
 
     def estados_finales(self):
-        SocioService(self.db).inhabilitar(self.socios[8].id, "Extravió un libro y no lo repuso")
+        # Diego se llevo un libro hace casi dos meses y no lo devolvio: al correr el proceso
+        # de vencimientos queda inhabilitado por atraso, con el motivo cargado.
+        self._pedir(self.socios[8], self.libros[3], "CEN", "CEN", 50)
+        ProcesoVencimientos(self.db).ejecutar()
         SedeService(self.db).dar_de_baja(self.sedes["OES"].id)
 
 
