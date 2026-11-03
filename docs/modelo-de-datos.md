@@ -73,6 +73,7 @@ erDiagram
         date fecha_devolucion
         string estado_fisico_devolucion
         float multa
+        json detalle_multa
         string observaciones
     }
     REMITO {
@@ -178,6 +179,7 @@ DESTRUIDO se agregó sin migración.
 | `0002` | Tabla `incidencias` |
 | `0003` | Extensión `unaccent` de Postgres, para buscar sin distinguir tildes |
 | `0004` | Secuencia `remitos_numero_seq` para numerar remitos (continúa desde el último existente) |
+| `0005` | Columna `prestamos.detalle_multa`: cómo se compuso la multa al devolver |
 
 ## Estados de cada entidad
 
@@ -259,5 +261,6 @@ Algunos datos no se guardan porque se derivan de otros:
 | Atraso y multa a la fecha | `Prestamo.dias_atraso_actual` y `Prestamo.multa_actual`: a hoy si sigue activo; lo que tuvo si ya se devolvió |
 | Socio con vencidos | `Socio.tiene_vencidos`: algún préstamo activo pasado de fecha |
 
-La multa sí se guarda (`prestamos.multa`) al registrar la devolución, para que no cambie si
-después se modifica la política de multas.
+La multa sí se guarda al registrar la devolución: el total en `prestamos.multa` y cómo se
+compuso en `prestamos.detalle_multa` (por ejemplo, atraso grave + devuelto dañado). Así no cambia
+si después se modifican los montos.

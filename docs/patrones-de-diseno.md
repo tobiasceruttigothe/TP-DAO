@@ -6,7 +6,7 @@ La consigna exige al menos dos patrones. Se aplicaron tres: **State**, **Strateg
 | Patrón | Dónde | Problema que resuelve |
 |---|---|---|
 | State | `app/domain/estados_remito.py`, `app/models/remito.py` | Ciclo de vida del remito |
-| Strategy | `app/domain/multas.py` | Cálculo de multas por atraso |
+| Strategy | `app/domain/multas.py` | Cálculo de multas según atraso y estado de devolución |
 | Repository | `app/repositories/` | Separar el acceso a datos de la lógica de negocio |
 
 ---
@@ -204,86 +204,136 @@ ninguna operación y que el historial quede completo.
 
 ### Problema
 
-Al devolver un préstamo con atraso se cobra una multa. La forma de calcularla es una política
-que cambia entre bibliotecas o con el tiempo: monto fijo por día, escalonada, con tope, con días
-de gracia, etc. Si el cálculo estuviera escrito dentro de la devolución, cada cambio de política
+Al devolver un préstamo se puede cobrar una multa, y no todos los casos se cobran igual: no es
+lo mismo un atraso de dos días que uno de un mes, ni devolver el libro en buen estado que
+dañado. Si todas esas reglas estuvieran escritas dentro de la devolución, quedaría un método
+lleno de condicionales, y cada cambio de política (otro monto, un tramo nuevo, un recargo)
 obligaría a tocar el proceso de préstamos.
 
 ### Solución
 
-El cálculo se encapsula en una familia de clases intercambiables con la misma interfaz. El
-servicio de préstamos usa la estrategia sin saber cuál es.
+Cada forma de multar es una estrategia: una clase con la misma interfaz (`calcular`) que sabe
+calcular **su parte** de la multa. Las tres estrategias **conviven**, y en cada devolución el
+contexto (`CalculadorMulta`) mira la situación y elige cuáles aplicar.
 
 ```mermaid
 classDiagram
     class EstrategiaMulta {
         <<abstract>>
-        +calcular(dias_atraso) float
+        +calcular(datos) ConceptoMulta
     }
-    class MultaFija {
+    class MultaAtrasoLeve {
         +monto_diario: float
-        +calcular(dias_atraso) float
+        +calcular(datos) ConceptoMulta
     }
-    class MultaEscalonada {
+    class MultaAtrasoGrave {
         +monto_diario: float
-        +dias_tramo: int
-        +factor: float
-        +calcular(dias_atraso) float
+        +monto_diario_grave: float
+        +dias_leves: int
+        +calcular(datos) ConceptoMulta
+    }
+    class MultaPorDanio {
+        +cargos: dict
+        +cobra(estado_fisico) bool
+        +calcular(datos) ConceptoMulta
     }
     class CalculadorMulta {
-        -_estrategia: EstrategiaMulta
-        +set_estrategia(estrategia)
-        +calcular(dias_atraso) float
+        +estrategias_para(datos) list
+        +calcular(datos) ResultadoMulta
+    }
+    class DatosMulta {
+        +dias_atraso: int
+        +estado_fisico
     }
     class PrestamoService {
         +calculador: CalculadorMulta
         +devolver(prestamo_id, datos)
     }
-    EstrategiaMulta <|-- MultaFija
-    EstrategiaMulta <|-- MultaEscalonada
-    CalculadorMulta o--> EstrategiaMulta
+    EstrategiaMulta <|-- MultaAtrasoLeve
+    EstrategiaMulta <|-- MultaAtrasoGrave
+    EstrategiaMulta <|-- MultaPorDanio
+    CalculadorMulta o--> EstrategiaMulta : tiene las tres
+    CalculadorMulta ..> DatosMulta : decide según
     PrestamoService --> CalculadorMulta
 ```
 
-| Estrategia | Regla | Ejemplo con $500/día y 10 días de atraso |
+| Estrategia | Cuándo se aplica | Cómo calcula (valores por defecto) |
 |---|---|---|
-| `MultaFija` | `días × monto` | 10 × 500 = **$5000** |
-| `MultaEscalonada` | Primeros 7 días a monto base, desde el 8.° al doble | 7 × 500 + 3 × 1000 = **$6500** |
+| `MultaAtrasoLeve` | Atraso de 1 a 7 días | días × $500 |
+| `MultaAtrasoGrave` | Atraso de 8 días o más | 7 días × $500 + los días siguientes × $1.000 |
+| `MultaPorDanio` | Se devuelve dañado o destruido | Cargo fijo: $5.000 dañado, $20.000 destruido (reposición) |
+
+Las dos de atraso se excluyen entre sí. La de daño se **suma** a la de atraso, si la hay.
 
 ### Quién elige la estrategia
 
 Como explica el apunte (16.5.1), la diferencia clave entre State y Strategy es **quién decide el
 cambio**. En State, el propio estado decide a qué estado pasa. En Strategy, la elige alguien de
-afuera. Acá la elige la configuración: la variable `MULTA_ESTRATEGIA` (`fija` o `escalonada`)
-se lee al crear el servicio y `crear_estrategia` devuelve la clase correspondiente.
+afuera de la estrategia. Acá la elige el contexto, `CalculadorMulta`, según los datos de cada
+devolución:
 
 ```python
-self.calculador = CalculadorMulta(
-    crear_estrategia(settings.multa_estrategia, settings.multa_monto_diario)
-)
+def estrategias_para(self, datos: DatosMulta) -> list[EstrategiaMulta]:
+    elegidas = []
+    if datos.dias_atraso > self.atraso_grave.dias_leves:
+        elegidas.append(self.atraso_grave)
+    elif datos.dias_atraso > 0:
+        elegidas.append(self.atraso_leve)
+    if self.por_danio.cobra(datos.estado_fisico):
+        elegidas.append(self.por_danio)
+    return elegidas
 ```
 
-`PrestamoService` también acepta un `calculador` por parámetro, lo que permite usar otra
-estrategia sin tocar la configuración (por ejemplo, en un test).
+Las estrategias no saben cuándo se aplican, solo cómo calcular. La decisión está en un único
+lugar, y el servicio de préstamos no conoce ninguna estrategia concreta: le pasa los datos al
+calculador y guarda el resultado.
+
+| Caso | Estrategias elegidas | Multa |
+|---|---|---|
+| 5 días de atraso, devuelto bien | Atraso leve | 5 × $500 = **$2.500** |
+| 7 días de atraso, devuelto bien | Atraso leve | 7 × $500 = **$3.500** |
+| 10 días de atraso, devuelto bien | Atraso grave | 7 × $500 + 3 × $1.000 = **$6.500** |
+| 3 días de atraso, devuelto dañado | Atraso leve + daño | $1.500 + $5.000 = **$6.500** |
+| En término, devuelto destruido | Daño | **$20.000** |
+| Activo, 36 días vencido (multa a la fecha) | Atraso grave | 7 × $500 + 29 × $1.000 = **$32.500** |
+
+Mientras el préstamo no se devuelve, la multa a la fecha solo incluye el atraso: el estado
+físico recién se conoce al devolverlo.
+
+### Detalle de la multa
+
+`calcular` devuelve un `ResultadoMulta` con un renglón por estrategia aplicada (concepto y
+monto) y el total. Al devolver se guardan los dos en el préstamo (`multa` y `detalle_multa`),
+así el detalle no cambia aunque después se modifiquen los montos. El frontend lo muestra al
+registrar la devolución y al pasar el mouse sobre cualquier multa.
 
 ### Por qué no un diccionario de funciones
 
 El apunte muestra que Strategy también se puede implementar con funciones en un diccionario
-(16.6). Se eligieron clases porque las estrategias tienen parámetros propios (`monto_diario`,
-`dias_tramo`, `factor`) y con una clase quedan encapsulados junto al cálculo. Con funciones
-habría que pasarlos en cada llamada o usar clausuras.
+(16.6). Se eligieron clases porque las estrategias tienen parámetros propios (montos, días del
+tramo leve, cargos por estado) y con una clase quedan encapsulados junto al cálculo. Con
+funciones habría que pasarlos en cada llamada o usar clausuras.
+
+### Configuración
+
+Los montos se configuran por variables de entorno, sin tocar código: `MULTA_MONTO_DIARIO`,
+`MULTA_MONTO_DIARIO_GRAVE`, `MULTA_DIAS_LEVES`, `MULTA_CARGO_DANADO` y `MULTA_CARGO_DESTRUIDO`.
+`calculador_configurado()` arma el calculador con esos valores.
 
 ### Cómo agregar una estrategia
 
+Por ejemplo, un recargo para socios reincidentes:
+
 1. Crear una subclase de `EstrategiaMulta` que implemente `calcular`.
-2. Registrarla con un nombre en `crear_estrategia`.
-3. Configurar `MULTA_ESTRATEGIA` con ese nombre.
+2. Dársela al `CalculadorMulta` y agregar en `estrategias_para` la condición que la elige.
+
+Ni el servicio de préstamos ni las otras estrategias cambian.
 
 ### Tests
 
-`tests/test_multas.py` prueba cada estrategia por separado, el cambio de estrategia en tiempo de
-ejecución con `set_estrategia` y la creación por nombre. `tests/test_prestamos.py` verifica que
-la devolución con atraso aplique la multa.
+`tests/test_multas.py` prueba cada estrategia por separado, qué estrategias elige el calculador
+en cada caso (incluidos los límites de 7 y 8 días) y el detalle generado. `tests/test_prestamos.py`
+verifica la devolución con atraso y daño, y la devolución destruida en término.
 
 ---
 

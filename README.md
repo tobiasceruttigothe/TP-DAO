@@ -144,14 +144,15 @@ operar (`Remito.estado_actual`).
 
 ### Strategy - cálculo de multas (`app/domain/multas.py`)
 
-`EstrategiaMulta` define `calcular(dias_atraso)`. Hay dos implementaciones: `MultaFija`
-(monto por día) y `MultaEscalonada` (monto base la primera semana, doble desde el día 8).
-`CalculadorMulta` es el contexto y la estrategia se elige por configuración
-(`MULTA_ESTRATEGIA`).
+`EstrategiaMulta` define `calcular(datos)`. Hay tres estrategias que conviven: `MultaAtrasoLeve`
+(hasta 7 días, $500 por día), `MultaAtrasoGrave` (desde el día 8: los primeros 7 a $500 y el resto
+a $1.000) y `MultaPorDanio` (cargo fijo si se devuelve dañado o destruido). En cada devolución,
+`CalculadorMulta` (el contexto) elige cuáles aplicar según los días de atraso y el estado físico,
+y suma. La multa se guarda con su detalle.
 
-Por qué: la política de multas es lo que más probablemente cambie (cada biblioteca o cada año
-puede tener otra). Con Strategy se cambia o agrega una política sin tocar el préstamo ni la
-devolución, y cada política se testea aislada.
+Por qué: hay varias formas de multar según la situación, y la política es lo que más
+probablemente cambie. Con Strategy cada regla está en su clase, se agrega una nueva sin tocar el
+préstamo ni la devolución, y cada una se testea aislada.
 
 ### Repository / DAO (`app/repositories/`)
 

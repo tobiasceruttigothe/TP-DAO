@@ -145,13 +145,17 @@ flowchart TD
 opcionalmente la fecha (por defecto, hoy). También se acepta DESTRUIDO.
 
 - Lógica: `PrestamoService.devolver`
-- Se calcula la multa si hubo atraso (patrón Strategy) y queda guardada en el préstamo.
+- Se calcula la multa (patrón Strategy) y queda guardada en el préstamo con su detalle:
+  - atraso de 1 a 7 días: $500 por día;
+  - atraso de 8 días o más: 7 días a $500 y los siguientes a $1.000;
+  - si se devuelve dañado se suman $5.000, y si se devuelve destruido, $20.000.
 - Préstamo local: el ejemplar vuelve a DISPONIBLE (o a EN_REPARACION si volvió dañado) y se
   ofrece a la primera reserva pendiente.
 - Préstamo interbibliotecario: se genera el remito de retorno hacia la sede de origen.
 - Si se devuelve DESTRUIDO, el ejemplar se da de baja y no se genera remito de retorno: no tiene
   sentido enviar de vuelta un ejemplar inservible.
 - Tests: `test_devolucion_en_termino_sin_multa`, `test_devolucion_con_atraso_genera_multa`,
+  `test_devolucion_danada_con_atraso_suma_las_dos_multas`, `test_devolucion_destruida_en_termino_cobra_solo_el_cargo`,
   `test_devolucion_danado_pasa_a_reparacion`, `test_no_se_devuelve_dos_veces`
 
 ## Validaciones de formato
@@ -211,7 +215,7 @@ La consigna pide al menos cuatro reportes no triviales. Se implementaron los sei
 | Endpoint | Contenido | Qué lo hace no trivial |
 |---|---|---|
 | `GET /reportes/prestamos-activos` | Préstamos activos (con marca de vencido) y remitos en viaje con horas transcurridas | Cruza préstamos, ejemplares, libros, socios y remitos |
-| `GET /reportes/vencidos-multas?fecha=` | Por socio: préstamos vencidos con días de atraso, multas cobradas, multas pendientes estimadas y total | Calcula multas a una fecha con la estrategia vigente y agrupa por socio |
+| `GET /reportes/vencidos-multas?fecha=` | Por socio: préstamos vencidos con días de atraso, multas cobradas, multas pendientes estimadas y total | Calcula multas a una fecha con las mismas estrategias que la devolución y agrupa por socio |
 | `GET /reportes/libros-mas-solicitados?desde=&hasta=&limite=` | Ranking de libros en préstamos inter-sede | Agregación con `GROUP BY` y filtro por período |
 | `GET /reportes/disponibilidad-sedes` | Por sede: títulos distintos, ejemplares por estado y porcentaje disponible | Agregación por sede y estado; incluye sedes sin ejemplares |
 | `GET /reportes/envios?desde=&hasta=` | Recibidos sin problemas, con daño, destruidos, extraviados, cancelados, en curso; tasa de éxito e incidencias | Clasifica remitos por resultado; los cancelados no cuentan para la tasa porque no viajaron |
