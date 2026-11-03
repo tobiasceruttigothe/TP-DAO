@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.domain.enums import EstadoEjemplar, EstadoFisico, EstadoPrestamo, EstadoReserva, TipoPrestamo, TipoRemito
-from app.domain.multas import CalculadorMulta, calculador_configurado
+from app.domain.multas import CalculadorMulta, DatosMulta, calculador_configurado
 from app.exceptions import NoEncontradoError, ReglaNegocioError
 from app.models import Prestamo
 from app.repositories import EjemplarRepository, PrestamoRepository, ReservaRepository
@@ -101,7 +101,9 @@ class PrestamoService:
         prestamo.fecha_devolucion = fecha
         prestamo.estado_fisico_devolucion = datos.estado_fisico
         prestamo.observaciones = datos.observaciones
-        prestamo.multa = self.calculador.calcular(prestamo.dias_atraso(fecha))
+        resultado = self.calculador.calcular(DatosMulta(prestamo.dias_atraso(fecha), datos.estado_fisico))
+        prestamo.multa = resultado.total
+        prestamo.detalle_multa = [{"concepto": c.concepto, "monto": c.monto} for c in resultado.conceptos]
 
         ejemplar = prestamo.ejemplar
         ejemplar.estado_fisico = datos.estado_fisico
@@ -122,4 +124,4 @@ class PrestamoService:
 
     def multa_estimada(self, prestamo: Prestamo, hoy: date) -> float:
         """Multa que se cobraria si se devolviera hoy (para prestamos todavia activos)."""
-        return self.calculador.calcular(prestamo.dias_atraso(hoy))
+        return self.calculador.calcular(DatosMulta(prestamo.dias_atraso(hoy))).total

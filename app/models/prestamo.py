@@ -1,11 +1,11 @@
 from datetime import date, timedelta
 
-from sqlalchemy import Column, Date, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, Column, Date, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.domain.enums import EstadoFisico, EstadoPrestamo, TipoPrestamo
-from app.domain.multas import calculador_configurado
+from app.domain.multas import DatosMulta, calculador_configurado
 
 
 class Prestamo(Base):
@@ -24,6 +24,8 @@ class Prestamo(Base):
     fecha_devolucion = Column(Date)
     estado_fisico_devolucion = Column(Enum(EstadoFisico, native_enum=False, length=20))
     multa = Column(Float, nullable=False, default=0.0)
+    # Como se compuso la multa al devolver: [{"concepto": ..., "monto": ...}]
+    detalle_multa = Column(JSON)
     observaciones = Column(String(300))
 
     socio = relationship("Socio", back_populates="prestamos")
@@ -55,13 +57,22 @@ class Prestamo(Base):
         return 0
 
     @property
+    def desglose_multa(self) -> list[dict]:
+        """Detalle de la multa: el guardado al devolver, o el que corresponderia si se
+        devolviera hoy (solo atraso: el estado fisico recien se sabe al devolver)."""
+        if self.estado == EstadoPrestamo.DEVUELTO:
+            return self.detalle_multa or []
+        if self.estado == EstadoPrestamo.ACTIVO:
+            resultado = calculador_configurado().calcular(DatosMulta(self.dias_atraso_actual))
+            return [{"concepto": c.concepto, "monto": c.monto} for c in resultado.conceptos]
+        return []
+
+    @property
     def multa_actual(self) -> float:
         """La multa cobrada si ya se devolvio, o la que se cobraria si se devolviera hoy."""
         if self.estado == EstadoPrestamo.DEVUELTO:
             return self.multa
-        if self.estado == EstadoPrestamo.ACTIVO:
-            return calculador_configurado().calcular(self.dias_atraso_actual)
-        return 0.0
+        return round(sum(c["monto"] for c in self.desglose_multa), 2)
 
     @property
     def es_interbibliotecario(self) -> bool:

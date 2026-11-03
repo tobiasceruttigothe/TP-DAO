@@ -220,3 +220,24 @@ def test_numeros_de_remito_correlativos_y_unicos(db, datos, escenario):
     valores = [int(n.removeprefix("R-")) for n in numeros]
     assert valores == sorted(valores)
     assert all(n.startswith("R-") and len(n) == 8 for n in numeros)
+
+
+def test_devolucion_danada_con_atraso_suma_las_dos_multas(db, escenario):
+    centro, _, _, ejemplar, socio = escenario
+    prestamo = pedir(db, socio, ejemplar, centro, centro)
+    devolver(db, prestamo, prestamo.fecha_vencimiento + timedelta(days=10), EstadoFisico.DANADO)
+
+    grave = 7 * settings.multa_monto_diario + 3 * settings.multa_monto_diario_grave
+    assert prestamo.multa == grave + settings.multa_cargo_danado
+    assert [c["concepto"] for c in prestamo.detalle_multa] == [
+        "Atraso grave: 7 días × $500 + 3 días × $1.000",
+        "Devuelto dañado",
+    ]
+
+
+def test_devolucion_destruida_en_termino_cobra_solo_el_cargo(db, escenario):
+    centro, _, _, ejemplar, socio = escenario
+    prestamo = pedir(db, socio, ejemplar, centro, centro)
+    devolver(db, prestamo, HOY, EstadoFisico.DESTRUIDO)
+    assert prestamo.multa == settings.multa_cargo_destruido
+

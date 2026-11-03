@@ -4,6 +4,7 @@ import pytest
 
 from app.config import settings
 from app.domain.enums import EstadoFisico, EstadoReserva
+from app.domain.multas import DatosMulta, calculador_configurado
 from app.exceptions import ReglaNegocioError
 from app.schemas.prestamo import DevolucionCrear, PrestamoCrear
 from app.schemas.reserva import ReservaCrear
@@ -94,13 +95,15 @@ def test_atraso_y_multa_a_la_fecha(db, prestamo_local):
     # El prestamo del fixture empezo el 01/10/2026; a hoy (fecha real del sistema) puede estar vencido o no
     esperado = max((date.today() - prestamo.fecha_vencimiento).days, 0)
     assert prestamo.dias_atraso_actual == esperado
-    assert prestamo.multa_actual == esperado * settings.multa_monto_diario
+    assert prestamo.multa_actual == calculador_configurado().calcular(DatosMulta(esperado)).total
+    assert prestamo.multa_actual == sum(c["monto"] for c in prestamo.desglose_multa)
 
     PrestamoService(db).devolver(
         prestamo.id, DevolucionCrear(estado_fisico=EstadoFisico.BUENO, fecha_devolucion=dia_con_atraso(prestamo, 3))
     )
     assert prestamo.dias_atraso_actual == 3
     assert prestamo.multa_actual == prestamo.multa == 3 * settings.multa_monto_diario
+    assert prestamo.desglose_multa == prestamo.detalle_multa
 
 
 def test_socio_con_vencidos(db, datos):
