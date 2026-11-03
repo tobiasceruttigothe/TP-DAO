@@ -1,4 +1,4 @@
-import { Tag, Typography } from 'antd'
+import { Tag, Tooltip, Typography } from 'antd'
 import { moneda } from '../utiles/formato'
 
 /** Dias de atraso de un prestamo (a hoy si sigue activo, o el que tuvo si se devolvio). */
@@ -9,16 +9,32 @@ export function Atraso({ prestamo }) {
   return `${dias} días`
 }
 
-/** Multa cobrada, o la acumulada hasta hoy si todavia no se devolvio. */
+/** Renglones de la multa: "Atraso grave: ... $6.500", "Devuelto dañado $5.000". */
+export function DesgloseMulta({ conceptos }) {
+  if (!conceptos?.length) return null
+  return (
+    <ul style={{ margin: 0, paddingLeft: 18 }}>
+      {conceptos.map((c) => (
+        <li key={c.concepto}>
+          {c.concepto}: <b>{moneda(c.monto)}</b>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** Multa cobrada, o la acumulada hasta hoy si todavia no se devolvio. Al pasar el mouse muestra el detalle. */
 export function Multa({ prestamo }) {
   if (!prestamo.multa_actual) return '-'
-  if (prestamo.estado === 'ACTIVO') {
-    return (
-      <>
-        <Typography.Text type="danger">{moneda(prestamo.multa_actual)}</Typography.Text>
-        <div style={{ fontSize: 12, color: '#8c8c8c' }}>a la fecha</div>
-      </>
-    )
-  }
-  return moneda(prestamo.multa_actual)
+  const activo = prestamo.estado === 'ACTIVO'
+  return (
+    <Tooltip title={<DesgloseMulta conceptos={prestamo.desglose_multa} />}>
+      <span style={{ cursor: 'help' }}>
+        <Typography.Text type={activo ? 'danger' : undefined} underline>
+          {moneda(prestamo.multa_actual)}
+        </Typography.Text>
+        {activo && <div style={{ fontSize: 12, color: '#8c8c8c' }}>a la fecha</div>}
+      </span>
+    </Tooltip>
+  )
 }

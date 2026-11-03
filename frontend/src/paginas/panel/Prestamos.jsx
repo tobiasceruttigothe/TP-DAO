@@ -9,7 +9,7 @@ import useAccion from '../../hooks/useAccion'
 import Encabezado from '../../componentes/Encabezado'
 import EstadoTag from '../../componentes/EstadoTag'
 import Ruta from '../../componentes/Ruta'
-import { Atraso, Multa } from '../../componentes/AtrasoMulta'
+import { Atraso, DesgloseMulta, Multa } from '../../componentes/AtrasoMulta'
 import { SelectorSocio } from '../../componentes/Selectores'
 import { opcionesDe } from '../../utiles/estados'
 import { diasHasta, fecha, fechaApi, moneda, nombreSocio } from '../../utiles/formato'
@@ -37,7 +37,16 @@ function Devolucion({ prestamo, onCerrar, onDevuelto }) {
       title: 'Devolución registrada',
       content: (
         <>
-          <p>{resultado.multa > 0 ? `Multa por atraso: ${moneda(resultado.multa)}` : 'Sin multa.'}</p>
+          {resultado.multa > 0 ? (
+            <>
+              <p style={{ marginBottom: 4 }}>
+                Multa: <b>{moneda(resultado.multa)}</b>
+              </p>
+              <DesgloseMulta conceptos={resultado.desglose_multa} />
+            </>
+          ) : (
+            <p>Sin multa.</p>
+          )}
           {resultado.tipo === 'INTERBIBLIOTECARIO' && valores.estado_fisico !== 'DESTRUIDO' && (
             <p>Se generó el remito de retorno a {resultado.sede_origen.nombre}.</p>
           )}
@@ -68,6 +77,10 @@ function Devolucion({ prestamo, onCerrar, onDevuelto }) {
               <b>
                 Atraso: {prestamo.dias_atraso_actual} días · multa a hoy {moneda(prestamo.multa_actual)}
               </b>
+              <br />
+              <span style={{ fontSize: 12, color: '#8c8c8c' }}>
+                Si se devuelve dañado o destruido se suma el cargo correspondiente.
+              </span>
             </>
           )}
         </p>
