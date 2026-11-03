@@ -33,6 +33,9 @@ cd frontend && npm run lint
   correspondiente en `docs/`. Los diagramas son Mermaid (GitHub los dibuja).
 - Si se agrega un estado en un enum del backend, agregarlo también en `frontend/src/utiles/estados.js`.
 - Las búsquedas por texto usan `contiene()` de `app/repositories/base.py` (ignora tildes).
+- Las reglas de formato están en `app/schemas/validaciones.py` y su espejo en
+  `frontend/src/utiles/reglas.js`: si se cambia una, cambiar la otra. Los DTO de respuesta no
+  heredan de los de entrada (no tienen que validar datos que ya están en la base).
 
 ## Patrones aplicados
 
@@ -46,5 +49,3 @@ cd frontend && npm run lint
 - Opcionales de la consigna no encarados: notificaciones, recomendaciones, inventario con códigos.
 - Las multas se registran pero no hay circuito de pago; podría inhabilitarse automáticamente
   al socio con multas impagas.
-- El número de remito se calcula como el último id + 1: dos remitos creados al mismo tiempo
-  pueden chocar. Usar una secuencia de la base.

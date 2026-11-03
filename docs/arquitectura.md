@@ -36,7 +36,7 @@ Cada capa solo conoce a la de abajo:
 | Capa | Responsabilidad | No hace |
 |---|---|---|
 | Router | Traducir HTTP a llamadas al servicio | Lógica de negocio |
-| Schema | Validar formato (tipos, largos, email, DNI numérico) | Validar reglas de negocio |
+| Schema (DTO) | Validar formato: tipos, largos, DNI, ISBN, teléfono (`app/schemas/validaciones.py`) | Validar reglas de negocio |
 | Servicio | Aplicar las reglas de la consigna, coordinar entidades, hacer commit | Armar SQL |
 | Dominio | Transiciones del remito, cálculo de multas | Acceder a la base |
 | Repositorio | Consultar y agregar entidades | Commit, reglas de negocio |
@@ -44,6 +44,20 @@ Cada capa solo conoce a la de abajo:
 
 `domain/` está separado para que los patrones se puedan probar sin base de datos
 (`tests/test_estados_remito.py`, `tests/test_multas.py`).
+
+### `schemas` y `domain`
+
+- **`schemas/` son los DTO**: definen qué datos entran (`SocioCrear`, `PrestamoCrear`) y qué datos
+  salen (`SocioRespuesta`, `PrestamoRespuesta`). Los de entrada validan el formato antes de llegar
+  al servicio. Los de salida no validan: muestran lo que hay en la base. Además separan lo que la
+  API expone del modelo interno, y Swagger los usa para documentar cada endpoint.
+- **`domain/` es la lógica de negocio que no depende de la base ni de HTTP**: las clases del patrón
+  State (estados del remito), las del Strategy (multas) y los enums de estados. Por eso se prueban
+  sin base de datos.
+
+Dos niveles de validación: el **formato** va en el DTO ("el DNI tiene 7 u 8 dígitos"); las
+**reglas de negocio** van en el servicio ("el DNI no puede repetirse", "un socio inhabilitado no
+puede pedir préstamos").
 
 ## Flujo de una petición
 

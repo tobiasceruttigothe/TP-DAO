@@ -10,6 +10,7 @@ import Encabezado from '../../componentes/Encabezado'
 import EstadoTag from '../../componentes/EstadoTag'
 import { SelectorSede } from '../../componentes/Selectores'
 import { opcionesDe } from '../../utiles/estados'
+import { reglasTexto, validar } from '../../utiles/reglas'
 import FormularioLibro from './FormularioLibro'
 
 export default function LibroDetalle() {
@@ -36,7 +37,8 @@ export default function LibroDetalle() {
   }
 
   async function agregarEjemplar() {
-    const valores = await form.validateFields()
+    const valores = await validar(form)
+    if (!valores) return
     const ok = await ejecutar(() => ejemplaresApi.crear({ ...valores, libro_id: libroId }), 'Ejemplar agregado')
     if (ok) {
       setAgregando(false)
@@ -152,7 +154,7 @@ export default function LibroDetalle() {
         forceRender
       >
         <Form form={form} layout="vertical" initialValues={{ estado_fisico: 'BUENO' }}>
-          <Form.Item name="codigo_inventario" label="Código de inventario" rules={[{ required: true }]}>
+          <Form.Item name="codigo_inventario" label="Código de inventario" rules={reglasTexto('el código', 1, 30)}>
             <Input placeholder="CEN-0123" />
           </Form.Item>
           <Form.Item name="sede_id" label="Sede" rules={[{ required: true }]}>

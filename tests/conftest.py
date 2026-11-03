@@ -57,6 +57,13 @@ def client(db):
 
 # --- Datos de prueba ---
 
+def isbn_valido(n: int) -> str:
+    """ISBN-13 distinto para cada n, con su digito verificador correcto."""
+    base = f"978000{n:06d}"
+    suma = sum(int(d) * (1 if i % 2 == 0 else 3) for i, d in enumerate(base))
+    return base + str((10 - suma % 10) % 10)
+
+
 class Datos:
     """Atajos para armar escenarios sin repetir codigo en cada test."""
 
@@ -76,13 +83,13 @@ class Datos:
 
     def socio(self, **kwargs):
         n = self._n()
-        datos = {"dni": f"3000000{n}", "nombre": "Ana", "apellido": f"Perez{n}", "email": f"socio{n}@mail.com"}
+        datos = {"dni": str(30_000_000 + n), "nombre": "Ana", "apellido": "Perez", "email": f"socio{n}@mail.com"}
         datos.update(kwargs)
         return SocioService(self.db).crear(SocioCrear(**datos))
 
     def libro(self, **kwargs):
         n = self._n()
-        datos = {"isbn": f"978000000{n:04d}", "titulo": f"Libro {n}", "autor": "Borges"}
+        datos = {"isbn": isbn_valido(n), "titulo": f"Libro {n}", "autor": "Borges"}
         datos.update(kwargs)
         return CatalogoService(self.db).crear_libro(LibroCrear(**datos))
 

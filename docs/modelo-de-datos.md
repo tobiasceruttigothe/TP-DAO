@@ -159,7 +159,7 @@ estado `BAJA`). Borrarlos rompería el historial de préstamos y los reportes.
 | socios | `dni` único, `email` único | Evitar socios duplicados |
 | libros | `isbn` único | Evitar duplicados en el catálogo |
 | ejemplares | `codigo_inventario` único | Evitar ejemplares duplicados |
-| remitos | `numero` único | Identificar cada remito (formato `R-000001`) |
+| remitos | `numero` único, tomado de la secuencia `remitos_numero_seq` | Identificar cada remito (formato `R-000001`). La secuencia es atómica: dos remitos creados al mismo tiempo nunca reciben el mismo número |
 | todas | claves foráneas `NOT NULL` | Integridad referencial |
 
 Además de la restricción en la base, los servicios verifican los duplicados antes de insertar
@@ -177,6 +177,7 @@ DESTRUIDO se agregó sin migración.
 | `0001` | Esquema inicial |
 | `0002` | Tabla `incidencias` |
 | `0003` | Extensión `unaccent` de Postgres, para buscar sin distinguir tildes |
+| `0004` | Secuencia `remitos_numero_seq` para numerar remitos (continúa desde el último existente) |
 
 ## Estados de cada entidad
 

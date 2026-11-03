@@ -2,13 +2,15 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.schemas.validaciones import Dni, NombrePersona, Telefono, texto
+
 
 class SocioBase(BaseModel):
-    dni: str = Field(min_length=6, max_length=20, pattern=r"^\d+$")
-    nombre: str = Field(min_length=1, max_length=100)
-    apellido: str = Field(min_length=1, max_length=100)
-    email: EmailStr
-    telefono: str | None = Field(default=None, max_length=30)
+    dni: Dni = Field(description="7 u 8 dígitos; se aceptan puntos, que se quitan")
+    nombre: NombrePersona
+    apellido: NombrePersona
+    email: EmailStr = Field(max_length=120)
+    telefono: Telefono = Field(default=None, description="Solo números, entre 6 y 15 dígitos")
 
 
 class SocioCrear(SocioBase):
@@ -20,13 +22,20 @@ class SocioActualizar(SocioBase):
 
 
 class SocioInhabilitar(BaseModel):
-    motivo: str = Field(min_length=3, max_length=200)
+    motivo: texto(3, 200)
 
 
-class SocioRespuesta(SocioBase):
+class SocioRespuesta(BaseModel):
+    """Lo que devuelve la API. No valida formato: muestra lo que hay en la base."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    dni: str
+    nombre: str
+    apellido: str
+    email: str
+    telefono: str | None
     fecha_alta: date
     habilitado: bool
     motivo_inhabilitacion: str | None

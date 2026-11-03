@@ -9,7 +9,7 @@ function mensajeDeError(error) {
   const detalle = error.response.data?.detail
   if (typeof detalle === 'string') return detalle
   if (Array.isArray(detalle)) {
-    return detalle.map((d) => `${d.loc.slice(1).join('.')}: ${d.msg}`).join(' | ')
+    return detalle.map((d) => `${d.loc.slice(1).join('.')}: ${d.msg.replace(/^Value error, /, '')}`).join(' | ')
   }
   return `Error ${error.response.status}`
 }

@@ -154,6 +154,26 @@ opcionalmente la fecha (por defecto, hoy). También se acepta DESTRUIDO.
 - Tests: `test_devolucion_en_termino_sin_multa`, `test_devolucion_con_atraso_genera_multa`,
   `test_devolucion_danado_pasa_a_reparacion`, `test_no_se_devuelve_dos_veces`
 
+## Validaciones de formato
+
+Antes de llegar a las reglas de negocio, cada dato se controla en su DTO
+(`app/schemas/validaciones.py`). Si algo no cumple, la API responde 422 con el motivo de cada
+campo y no se ejecuta nada. El frontend aplica las mismas reglas (`frontend/src/utiles/reglas.js`)
+para avisar mientras se completa el formulario.
+
+| Dato | Regla | Ejemplos válidos |
+|---|---|---|
+| DNI | 7 u 8 dígitos. Se aceptan puntos o espacios, que se quitan | `30111222`, `30.111.222`, `7654321` |
+| Nombre y apellido | 2 a 50 caracteres. Solo letras (con tildes y ñ), separadas por un espacio, apóstrofe o guion. Se quitan los espacios de más | `Li`, `María de los Ángeles`, `O'Brien`, `Pérez-Gil` |
+| Teléfono (socio y sede) | Opcional. Solo dígitos, entre 6 y 15 | `3514000001` |
+| Email | Formato de email, hasta 120 caracteres | `ana@mail.com` |
+| ISBN | ISBN-10 o ISBN-13 con el dígito verificador correcto. Se aceptan guiones, que se quitan | `9789500728997`, `978-950-07-2899-7`, `080442957X` |
+| Año de publicación | Opcional. Entre 1400 y el año actual | `1963` |
+| Textos (título, autor, dirección, motivo, etc.) | Obligatorios donde corresponde, con largo mínimo y máximo. Se quitan los espacios de más | |
+
+Las respuestas de la API no vuelven a validar el formato: un dato guardado antes de estas reglas,
+o cargado a mano en la base, se sigue mostrando sin romper la pantalla.
+
 ## Validaciones de negocio
 
 | Validación de la consigna | Dónde se controla | Test |

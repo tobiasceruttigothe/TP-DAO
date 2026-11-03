@@ -10,7 +10,7 @@ def crear_socio(client, dni="30111222", email="ana@mail.com"):
     return r.json()
 
 
-def crear_libro(client, isbn="9789500000001"):
+def crear_libro(client, isbn="9789500000000"):
     r = client.post("/libros", json={"isbn": isbn, "titulo": "Rayuela", "autor": "Cortazar"})
     assert r.status_code == 201, r.text
     return r.json()
@@ -32,11 +32,11 @@ def test_duplicados_devuelven_409(client):
 
     crear_socio(client)
     assert client.post(
-        "/socios", json={"dni": "30111222", "nombre": "X", "apellido": "Y", "email": "otro@mail.com"}
+        "/socios", json={"dni": "30111222", "nombre": "Juan", "apellido": "Diaz", "email": "otro@mail.com"}
     ).status_code == 409
 
     libro = crear_libro(client)
-    assert client.post("/libros", json={"isbn": "9789500000001", "titulo": "T", "autor": "A"}).status_code == 409
+    assert client.post("/libros", json={"isbn": "9789500000000", "titulo": "T", "autor": "Ab"}).status_code == 409
 
     sede = client.get("/sedes").json()[0]
     crear_ejemplar(client, libro["id"], sede["id"], codigo="INV-1")
@@ -182,7 +182,7 @@ def test_cors_permite_al_frontend(client):
 
 
 def test_busqueda_ignora_tildes_y_comodines(client):
-    client.post("/libros", json={"isbn": "9789500000099", "titulo": "Bestiario", "autor": "Julio Cortázar"})
+    client.post("/libros", json={"isbn": "9789500000093", "titulo": "Bestiario", "autor": "Julio Cortázar"})
     crear_socio(client, dni="30999888", email="lucia@mail.com")
     client.put(
         f"/socios/{client.get('/socios').json()['items'][0]['id']}",
@@ -219,3 +219,20 @@ def test_prestamo_y_socio_informan_atraso(client):
     ).json()
     assert (prestamo["dias_atraso_actual"], prestamo["multa_actual"]) == (0, 0)
     assert client.get(f"/socios/{socio['id']}").json()["tiene_vencidos"] is False
+
+
+def test_validacion_de_formato_devuelve_mensaje_claro(client):
+    r = client.post("/socios", json={"dni": "123", "nombre": "Juan2", "apellido": "Paz", "email": "a@mail.com"})
+    assert r.status_code == 422
+    errores = {e["loc"][-1]: e["msg"] for e in r.json()["detail"]}
+    assert "7 u 8 dígitos" in errores["dni"]
+    assert "solo puede tener letras" in errores["nombre"]
+
+
+def test_datos_viejos_no_rompen_las_respuestas(client, db):
+    # Un dato cargado antes de las validaciones nuevas (o directo en la base) se sigue mostrando
+    from app.models import Socio
+
+    db.add(Socio(dni="123", nombre="X", apellido="Y1", email="viejo@mail.com", telefono="351-400"))
+    db.flush()
+    assert client.get("/socios").status_code == 200

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Input, Space, Table } from 'antd'
+import { Button, Space, Table } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { librosApi } from '../../api'
 import useListado from '../../hooks/useListado'
+import Buscador from '../../componentes/Buscador'
 import Encabezado from '../../componentes/Encabezado'
 import FormularioLibro from './FormularioLibro'
 
@@ -16,7 +17,7 @@ export default function Libros() {
   return (
     <>
       <Encabezado titulo="Catálogo" descripcion="Libros de la red. Cada libro puede tener ejemplares en varias sedes.">
-        <Input.Search allowClear placeholder="Título o autor" onSearch={setQ} style={{ width: 260 }} />
+        <Buscador placeholder="Título o autor" onBuscar={setQ} style={{ width: 260 }} />
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setEdicion({})}>
           Nuevo libro
         </Button>

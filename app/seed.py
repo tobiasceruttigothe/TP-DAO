@@ -24,22 +24,22 @@ from app.services.sede_service import SedeService
 from app.services.socio_service import SocioService
 
 SEDES = [
-    ("CEN", SedeCrear(nombre="Biblioteca Central", direccion="Av. Colón 1200", telefono="351-4000001",
+    ("CEN", SedeCrear(nombre="Biblioteca Central", direccion="Av. Colón 1200", telefono="3514000001",
                       email="central@bibliotecas.gob.ar", horario="Lun a Vie 8 a 20, Sab 9 a 13")),
-    ("NOR", SedeCrear(nombre="Sede Norte", direccion="Av. Monseñor Pablo Cabrera 3500", telefono="351-4000002",
+    ("NOR", SedeCrear(nombre="Sede Norte", direccion="Av. Monseñor Pablo Cabrera 3500", telefono="3514000002",
                       email="norte@bibliotecas.gob.ar", horario="Lun a Vie 9 a 18")),
-    ("SUR", SedeCrear(nombre="Sede Sur", direccion="Av. Vélez Sarsfield 4100", telefono="351-4000003",
+    ("SUR", SedeCrear(nombre="Sede Sur", direccion="Av. Vélez Sarsfield 4100", telefono="3514000003",
                       email="sur@bibliotecas.gob.ar", horario="Lun a Sab 9 a 14")),
-    ("OES", SedeCrear(nombre="Sede Oeste", direccion="Av. Fuerza Aérea 2800", telefono="351-4000004",
+    ("OES", SedeCrear(nombre="Sede Oeste", direccion="Av. Fuerza Aérea 2800", telefono="3514000004",
                       horario="Lun a Vie 14 a 20")),
 ]
 
 SOCIOS = [
-    SocioCrear(dni="38111222", nombre="Lucía", apellido="Fernández", email="lucia.fernandez@mail.com", telefono="351-5550001"),
-    SocioCrear(dni="40222333", nombre="Martín", apellido="Gómez", email="martin.gomez@mail.com", telefono="351-5550002"),
+    SocioCrear(dni="38111222", nombre="Lucía", apellido="Fernández", email="lucia.fernandez@mail.com", telefono="3515550001"),
+    SocioCrear(dni="40222333", nombre="Martín", apellido="Gómez", email="martin.gomez@mail.com", telefono="3515550002"),
     SocioCrear(dni="35333444", nombre="Sofia", apellido="Ramírez", email="sofia.ramirez@mail.com"),
     SocioCrear(dni="42444555", nombre="Joaquín", apellido="Díaz", email="joaquin.diaz@mail.com"),
-    SocioCrear(dni="33555666", nombre="Valentina", apellido="López", email="valentina.lopez@mail.com", telefono="351-5550005"),
+    SocioCrear(dni="33555666", nombre="Valentina", apellido="López", email="valentina.lopez@mail.com", telefono="3515550005"),
     SocioCrear(dni="39666777", nombre="Tomás", apellido="Martínez", email="tomas.martinez@mail.com"),
     SocioCrear(dni="41777888", nombre="Camila", apellido="Sosa", email="camila.sosa@mail.com"),
     SocioCrear(dni="36888999", nombre="Nicolás", apellido="Romero", email="nicolas.romero@mail.com"),

@@ -2,15 +2,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.enums import EstadoEjemplar, EstadoFisico
 from app.schemas.resumen import LibroResumen, SedeResumen
+from app.schemas.validaciones import AnioPublicacion, Isbn, texto, texto_opcional
 
 
 class LibroBase(BaseModel):
-    isbn: str = Field(min_length=10, max_length=20)
-    titulo: str = Field(min_length=1, max_length=200)
-    autor: str = Field(min_length=1, max_length=150)
-    editorial: str | None = Field(default=None, max_length=100)
-    anio_publicacion: int | None = Field(default=None, ge=1400, le=2100)
-    genero: str | None = Field(default=None, max_length=60)
+    isbn: Isbn = Field(description="ISBN-10 o ISBN-13; se aceptan guiones, que se quitan")
+    titulo: texto(1, 200)
+    autor: texto(2, 150)
+    editorial: texto_opcional(100) = None
+    anio_publicacion: AnioPublicacion = None
+    genero: texto_opcional(60) = None
 
 
 class LibroCrear(LibroBase):
@@ -21,14 +22,22 @@ class LibroActualizar(LibroBase):
     pass
 
 
-class LibroRespuesta(LibroBase):
+class LibroRespuesta(BaseModel):
+    """Lo que devuelve la API. No valida formato: muestra lo que hay en la base."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    isbn: str
+    titulo: str
+    autor: str
+    editorial: str | None
+    anio_publicacion: int | None
+    genero: str | None
 
 
 class EjemplarCrear(BaseModel):
-    codigo_inventario: str = Field(min_length=1, max_length=30)
+    codigo_inventario: texto(1, 30)
     libro_id: int
     sede_id: int
     estado_fisico: EstadoFisico = EstadoFisico.BUENO

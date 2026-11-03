@@ -38,13 +38,13 @@ Queda en http://localhost:5173. Si la API está en otra URL, crear `frontend/.en
 ```
 src/
   api/          llamadas a la API (cliente.js configura axios; index.js agrupa por recurso)
-  componentes/  piezas reutilizables: etiquetas de estado, selectores con búsqueda, encabezado
+  componentes/  piezas reutilizables: etiquetas de estado, buscador, selectores, encabezado
   hooks/        useListado (tablas paginadas), useCarga (cargar datos), useAccion (operaciones)
   layouts/      marco del panel (menú lateral) y de la consulta pública
   paginas/
     panel/      una pantalla por sección del menú
     consulta/   consulta para socios
-  utiles/       textos y colores de cada estado, formato de fechas y moneda
+  utiles/       textos y colores de cada estado, formatos, reglas de validación
 ```
 
 ## Convenciones
@@ -58,5 +58,9 @@ src/
   fuera del componente o con `useCallback`); si no, la tabla se recarga en cada render.
 - Los formularios dentro de un modal usan `forceRender` y se reinician con `form.resetFields()`
   al abrirse, para que no queden datos de la vez anterior.
+- Las reglas de los campos (DNI, nombre, teléfono, ISBN...) están en `utiles/reglas.js` y son las
+  mismas que valida la API. Para validar un formulario usar `validar(form)`, que devuelve `null`
+  si hay errores en lugar de lanzar una excepción.
+- Las búsquedas por texto usan `<Buscador>`, que busca mientras se escribe.
 - Las reglas de negocio las valida el backend. El front solo valida formato (campos
   obligatorios, email, DNI numérico) y muestra el mensaje de error que devuelve la API.

@@ -4,10 +4,12 @@ import { PlusOutlined } from '@ant-design/icons'
 import { prestamosApi, sociosApi } from '../../api'
 import useListado from '../../hooks/useListado'
 import useAccion from '../../hooks/useAccion'
+import Buscador from '../../componentes/Buscador'
 import Encabezado from '../../componentes/Encabezado'
 import EstadoTag from '../../componentes/EstadoTag'
 import { Atraso, Multa } from '../../componentes/AtrasoMulta'
 import { fecha, moneda, nombreSocio } from '../../utiles/formato'
+import { reglasDni, reglasNombre, reglasTelefono, reglasTexto, soloDigitos, validar } from '../../utiles/reglas'
 
 function PrestamosDelSocio({ socioId }) {
   const { items, cargando, paginacion } = useListado(prestamosApi.listar, { socio_id: socioId }, 5)
@@ -72,7 +74,8 @@ export default function Socios() {
   }
 
   async function guardar() {
-    const valores = await form.validateFields()
+    const valores = await validar(form)
+    if (!valores) return
     const ok = await ejecutar(
       () => (edicion.id ? sociosApi.actualizar(edicion.id, valores) : sociosApi.crear(valores)),
       edicion.id ? 'Socio actualizado' : 'Socio registrado',
@@ -84,7 +87,9 @@ export default function Socios() {
   }
 
   async function inhabilitar() {
-    const { motivo } = await formMotivo.validateFields()
+    const valoresMotivo = await validar(formMotivo)
+    if (!valoresMotivo) return
+    const { motivo } = valoresMotivo
     const ok = await ejecutar(() => sociosApi.inhabilitar(inhabilitando.id, motivo), 'Socio inhabilitado')
     if (ok) {
       setInhabilitando(null)
@@ -99,10 +104,9 @@ export default function Socios() {
   return (
     <>
       <Encabezado titulo="Socios">
-        <Input.Search
-          allowClear
+        <Buscador
           placeholder="Nombre, apellido o DNI"
-          onSearch={(q) => setFiltros((f) => ({ ...f, q }))}
+          onBuscar={(q) => setFiltros((f) => ({ ...f, q }))}
           style={{ width: 260 }}
         />
         <Select
@@ -176,20 +180,20 @@ export default function Socios() {
         forceRender
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="dni" label="DNI" rules={[{ required: true, pattern: /^\d{6,}$/, message: 'Solo números, al menos 6' }]}>
-            <Input />
+          <Form.Item name="dni" label="DNI" rules={reglasDni} normalize={soloDigitos} extra="Sin puntos: 7 u 8 dígitos">
+            <Input inputMode="numeric" maxLength={10} />
           </Form.Item>
-          <Form.Item name="nombre" label="Nombre" rules={[{ required: true }]}>
-            <Input />
+          <Form.Item name="nombre" label="Nombre" rules={reglasNombre('nombre')}>
+            <Input maxLength={50} />
           </Form.Item>
-          <Form.Item name="apellido" label="Apellido" rules={[{ required: true }]}>
-            <Input />
+          <Form.Item name="apellido" label="Apellido" rules={reglasNombre('apellido')}>
+            <Input maxLength={50} />
           </Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
-            <Input />
+          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Ingresá un email válido' }]}>
+            <Input maxLength={120} />
           </Form.Item>
-          <Form.Item name="telefono" label="Teléfono">
-            <Input />
+          <Form.Item name="telefono" label="Teléfono" rules={reglasTelefono} normalize={soloDigitos} extra="Opcional. Solo números">
+            <Input inputMode="numeric" maxLength={20} />
           </Form.Item>
         </Form>
       </Modal>
@@ -205,7 +209,7 @@ export default function Socios() {
         forceRender
       >
         <Form form={formMotivo} layout="vertical">
-          <Form.Item name="motivo" label="Motivo" rules={[{ required: true, min: 3 }]}>
+          <Form.Item name="motivo" label="Motivo" rules={reglasTexto('el motivo', 3, 200)}>
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>

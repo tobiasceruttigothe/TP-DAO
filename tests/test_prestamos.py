@@ -208,3 +208,15 @@ def test_transicion_invalida_desde_el_servicio(db, escenario):
     prestamo = pedir(db, socio, ejemplar, centro, norte)
     with pytest.raises(TransicionInvalidaError):
         RemitoService(db).recibir(prestamo.remitos[0].id)
+
+
+def test_numeros_de_remito_correlativos_y_unicos(db, datos, escenario):
+    centro, norte, libro, _, socio = escenario
+    numeros = []
+    for _ in range(3):
+        prestamo = pedir(db, datos.socio(), datos.ejemplar(libro, centro), centro, norte)
+        numeros.append(prestamo.remitos[0].numero)
+    assert len(set(numeros)) == 3
+    valores = [int(n.removeprefix("R-")) for n in numeros]
+    assert valores == sorted(valores)
+    assert all(n.startswith("R-") and len(n) == 8 for n in numeros)
