@@ -174,6 +174,9 @@ Se evaluó usar Singleton para la conexión, pero no se aplicó:
 
 ## Reglas de negocio
 
+- Validación de formato en cada alta y modificación: DNI de 7 u 8 dígitos, nombre y apellido de
+  2 a 50 letras, teléfono solo con dígitos, ISBN con dígito verificador, entre otros. El detalle
+  está en [docs/procesos-y-reglas.md](docs/procesos-y-reglas.md#validaciones-de-formato).
 - No se prestan ejemplares no disponibles. Un ejemplar reservado solo lo puede retirar el socio
   que lo reservó.
 - No se presta ni se reserva a socios inhabilitados.
