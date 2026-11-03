@@ -207,8 +207,11 @@ Todo se configura por variables de entorno (`app/config.py`, ejemplo en `.env.ex
 | `DIAS_PRESTAMO` | 14 | Plazo del préstamo |
 | `MAX_PRESTAMOS_ACTIVOS` | 3 | Préstamos en curso por socio |
 | `DIAS_VALIDEZ_RESERVA` | 3 | Días para retirar una reserva disponible |
-| `MULTA_ESTRATEGIA` | `fija` | `fija` o `escalonada` |
-| `MULTA_MONTO_DIARIO` | 500 | Monto base de la multa |
+| `MULTA_MONTO_DIARIO` | 500 | Multa por día de atraso leve |
+| `MULTA_DIAS_LEVES` | 7 | Hasta cuántos días el atraso es leve |
+| `MULTA_MONTO_DIARIO_GRAVE` | 1000 | Multa por día a partir del día siguiente |
+| `MULTA_CARGO_DANADO` | 5000 | Cargo si se devuelve dañado |
+| `MULTA_CARGO_DESTRUIDO` | 20000 | Cargo si se devuelve destruido |
 | `DIAS_ATRASO_INHABILITACION` | 30 | Días de atraso para inhabilitar automáticamente al socio |
 | `PROCESO_AUTOMATICO` | `true` | Si la API corre sola el proceso de vencimientos |
 | `INTERVALO_PROCESO_MINUTOS` | 60 | Cada cuánto lo corre |

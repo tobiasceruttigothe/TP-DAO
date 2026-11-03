@@ -19,6 +19,11 @@ class DevolucionCrear(BaseModel):
     fecha_devolucion: date | None = Field(default=None, description="Por defecto, la fecha actual")
 
 
+class ConceptoMultaRespuesta(BaseModel):
+    concepto: str
+    monto: float
+
+
 class PrestamoRespuesta(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -37,6 +42,7 @@ class PrestamoRespuesta(BaseModel):
     multa: float
     dias_atraso_actual: int = Field(description="Atraso a hoy si esta activo; el que tuvo si se devolvio")
     multa_actual: float = Field(description="Multa cobrada, o la que se cobraria si se devolviera hoy")
+    desglose_multa: list[ConceptoMultaRespuesta] = Field(description="Como se compone la multa")
     observaciones: str | None
     socio: SocioResumen
     ejemplar: EjemplarResumen

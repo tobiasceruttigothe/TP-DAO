@@ -13,8 +13,13 @@ class Settings(BaseSettings):
     dias_prestamo: int = 14
     max_prestamos_activos: int = 3
     dias_validez_reserva: int = 3
-    multa_estrategia: str = "fija"  # "fija" | "escalonada"
+    # Multas: atraso leve (hasta multa_dias_leves) a monto_diario; atraso grave, los dias
+    # siguientes a monto_diario_grave; mas un cargo fijo si se devuelve danado o destruido
     multa_monto_diario: float = 500.0
+    multa_monto_diario_grave: float = 1000.0
+    multa_dias_leves: int = 7
+    multa_cargo_danado: float = 5000.0
+    multa_cargo_destruido: float = 20000.0
     # Dias de atraso a partir de los cuales el socio queda inhabilitado automaticamente
     dias_atraso_inhabilitacion: int = 30
 
