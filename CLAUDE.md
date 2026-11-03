@@ -7,7 +7,7 @@ frontend en React (`frontend/`, con su propio README y convenciones).
 ## Comandos
 
 ```bash
-docker compose up --build              # web en :3000, API en :8000, Postgres
+docker compose up --build              # web :3000, API :8000, pgAdmin :5050, Postgres
 docker compose exec api pytest         # tests
 docker compose exec api python -m app.seed
 alembic revision --autogenerate -m "descripcion"   # tras cambiar un modelo
@@ -46,6 +46,5 @@ cd frontend && npm run lint
 - Opcionales de la consigna no encarados: notificaciones, recomendaciones, inventario con códigos.
 - Las multas se registran pero no hay circuito de pago; podría inhabilitarse automáticamente
   al socio con multas impagas.
-- `procesar-vencidas` de reservas se dispara a mano; podría correr al iniciar el día.
 - El número de remito se calcula como el último id + 1: dos remitos creados al mismo tiempo
   pueden chocar. Usar una secuencia de la base.

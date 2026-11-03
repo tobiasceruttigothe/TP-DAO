@@ -178,13 +178,17 @@ Se evaluó usar Singleton para la conexión, pero no se aplicó:
   que lo reservó.
 - No se presta ni se reserva a socios inhabilitados.
 - Un socio con préstamos vencidos sin devolver no puede pedir otro.
+- Si un préstamo pasa más de 30 días vencido, el socio queda inhabilitado automáticamente con el
+  motivo cargado. Se rehabilita a mano. Lo hace el proceso de vencimientos, que la API corre sola
+  cada hora (también vence las reservas no retiradas).
 - Máximo de préstamos en curso por socio (por defecto 3).
 - El ejemplar debe pertenecer a la sede de origen del préstamo.
 - No se inician préstamos, reservas ni envíos hacia o desde una sede dada de baja. El remito de
   retorno sí se permite: el ejemplar tiene que volver a su sede igual.
 - Sin duplicados: nombre de sede, DNI y email de socio, ISBN y código de inventario.
-- El vencimiento se calcula al activarse el préstamo (por defecto 14 días). La multa se calcula
-  al devolver, según la estrategia configurada.
+- El vencimiento se calcula al activarse el préstamo (por defecto 14 días). La multa se guarda
+  al devolver, según la estrategia configurada; mientras tanto cada préstamo informa el atraso y
+  la multa acumulada a la fecha.
 - Las reservas se atienden por orden de llegada. Cuando se libera un ejemplar se aparta para la
   primera reserva pendiente, que tiene 3 días para retirarlo.
 - Un ejemplar devuelto o recibido dañado pasa a EN_REPARACION y no circula hasta marcarlo reparado.
@@ -220,6 +224,7 @@ Los valores numéricos se configuran por variables de entorno (ver `.env.example
 | GET | `/reservas/{id}` | Ver reserva |
 | POST | `/reservas/{id}/cancelar` | Cancelar reserva |
 | POST | `/reservas/procesar-vencidas` | Vencer reservas no retiradas |
+| POST | `/procesos/vencimientos` | Proceso completo: vence reservas e inhabilita por atraso |
 
 ### Reportes
 

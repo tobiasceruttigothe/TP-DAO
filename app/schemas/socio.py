@@ -30,3 +30,4 @@ class SocioRespuesta(SocioBase):
     fecha_alta: date
     habilitado: bool
     motivo_inhabilitacion: str | None
+    tiene_vencidos: bool = Field(description="Tiene prestamos vencidos sin devolver (no puede pedir otro)")

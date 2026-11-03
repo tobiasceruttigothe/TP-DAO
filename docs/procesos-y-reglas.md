@@ -95,6 +95,27 @@ ejemplares hay, cuántos están disponibles y sus códigos. Los ejemplares dados
 - Lógica: `CatalogoService.disponibilidad`
 - También: `GET /ejemplares?libro_id=&sede_id=&estado=` y el reporte de disponibilidad por sede.
 
+### Proceso de vencimientos
+
+Hay reglas que dependen del paso del tiempo y no de una acción del personal: una reserva que no
+se retiró a tiempo y un préstamo que acumula demasiado atraso. Las resuelve
+`ProcesoVencimientos` (`app/services/proceso_service.py`):
+
+1. Vence las reservas listas para retirar cuyo plazo pasó, y ofrece el ejemplar a la siguiente.
+2. Inhabilita a los socios con algún préstamo vencido hace más de `DIAS_ATRASO_INHABILITACION`
+   días (30 por defecto).
+
+La API lo ejecuta sola al arrancar y después cada `INTERVALO_PROCESO_MINUTOS` (60 por defecto).
+También se puede correr en el momento con `POST /procesos/vencimientos` o con el botón
+**Procesar vencimientos** de la pantalla de inicio.
+
+### Multa y atraso a la fecha
+
+La multa se guarda al registrar la devolución. Mientras el préstamo sigue activo y vencido, cada
+préstamo informa `dias_atraso_actual` y `multa_actual` (la multa que se cobraría si se devolviera
+hoy), calculadas con la misma estrategia que la devolución. El frontend las muestra en la tabla de
+préstamos, en el modal de devolución y en la consulta del socio.
+
 ### 7. Gestionar reservas
 
 Un socio reserva un libro en una sede.
@@ -138,7 +159,7 @@ opcionalmente la fecha (por defecto, hoy). También se acepta DESTRUIDO.
 | Validación de la consigna | Dónde se controla | Test |
 |---|---|---|
 | No prestar ejemplares no disponibles | `PrestamoService.solicitar` | `test_no_presta_ejemplar_no_disponible`, `test_ejemplar_reservado_solo_lo_retira_quien_reservo` |
-| No prestar a socios inhabilitados | `SocioService.obtener_habilitado`, usado al prestar y reservar | `test_no_presta_a_socio_inhabilitado`, `test_regla_de_negocio_devuelve_400` |
+| No prestar a socios inhabilitados | `SocioService.obtener_habilitado`, usado al prestar y reservar. La inhabilitación puede ser manual (con motivo) o automática por atraso | `test_no_presta_a_socio_inhabilitado`, `test_regla_de_negocio_devuelve_400`, `test_inhabilitado_por_atraso_no_puede_pedir_ni_reservar` |
 | Controlar fechas de vencimiento | `Prestamo.activar` calcula el vencimiento; `PrestamoService` bloquea nuevos préstamos si hay vencidos y cobra multa al devolver tarde | `test_socio_con_prestamo_vencido_no_puede_pedir_otro`, `test_devolucion_con_atraso_genera_multa` |
 | Trazabilidad del remito en todo el trayecto | `Remito.cambiar_estado` registra cada cambio en `movimientos_remito` | `test_recorrido_completo`, `test_circuito_interbibliotecario_completo` |
 | Evitar duplicados (socios, catálogo, ejemplares) | Restricciones `UNIQUE` en la base y verificación previa en cada servicio | `test_duplicados_devuelven_409` |
@@ -153,7 +174,8 @@ se agregaron:
 | Regla | Motivo | Test |
 |---|---|---|
 | Máximo de préstamos en curso por socio (3) | Práctica habitual en bibliotecas; evita que un socio acapare material | `test_maximo_de_prestamos` |
-| Un socio con préstamos vencidos no puede pedir otro | Consecuencia directa de controlar los vencimientos | `test_socio_con_prestamo_vencido_no_puede_pedir_otro` |
+| Un socio con préstamos vencidos no puede pedir otro | Consecuencia directa de controlar los vencimientos. No cambia el estado del socio: es una traba mientras no devuelva (en pantalla, "Con vencidos") | `test_socio_con_prestamo_vencido_no_puede_pedir_otro` |
+| Inhabilitación automática: si un préstamo pasa más de 30 días vencido sin devolverse, el socio queda inhabilitado con el motivo cargado ("Préstamo N° X (título) vencido hace N días") | Un atraso largo es más grave que uno corto: además de la multa, se le impide reservar. Se rehabilita a mano cuando regulariza | `tests/test_inhabilitacion.py` |
 | El remito de retorno se despacha aunque una sede esté de baja | Si se bloqueara, el ejemplar quedaría varado en otra sede | - |
 | Solo se cancela el remito de ida | El de retorno siempre tiene que completarse | `test_remito_de_retorno_no_se_cancela` |
 | Un ejemplar dañado no circula hasta repararlo | No prestar material en mal estado | `test_devolucion_danado_pasa_a_reparacion` |

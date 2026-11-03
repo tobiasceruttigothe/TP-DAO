@@ -38,5 +38,24 @@ services:
     depends_on:
       - api
 
+  # Administrador de la base desde el navegador: http://localhost:5050
+  pgadmin:
+    image: dpage/pgadmin4:8.14
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      # Modo escritorio: entra directo, sin pantalla de login
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_LISTEN_ADDRESS: 0.0.0.0
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - ./docker/pgadmin-servers.json:/pgadmin4/servers.json:ro
+      - pgadmin:/var/lib/pgadmin
+    depends_on:
+      - db
+
 volumes:
   pgdata:
+  pgadmin:

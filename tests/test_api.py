@@ -195,3 +195,27 @@ def test_busqueda_ignora_tildes_y_comodines(client):
     # % y _ se buscan como texto, no como comodines
     assert client.get("/libros", params={"q": "%"}).json()["total"] == 0
     assert client.get("/libros", params={"q": "_"}).json()["total"] == 0
+
+
+def test_proceso_de_vencimientos_por_api(client):
+    r = client.post("/procesos/vencimientos")
+    assert r.status_code == 200
+    assert r.json() == {"reservas_vencidas": 0, "socios_inhabilitados": []}
+
+
+def test_prestamo_y_socio_informan_atraso(client):
+    centro = crear_sede(client, "Centro")
+    socio = crear_socio(client)
+    libro = crear_libro(client)
+    ejemplar = crear_ejemplar(client, libro["id"], centro["id"])
+    prestamo = client.post(
+        "/prestamos",
+        json={
+            "socio_id": socio["id"],
+            "ejemplar_id": ejemplar["id"],
+            "sede_origen_id": centro["id"],
+            "sede_destino_id": centro["id"],
+        },
+    ).json()
+    assert (prestamo["dias_atraso_actual"], prestamo["multa_actual"]) == (0, 0)
+    assert client.get(f"/socios/{socio['id']}").json()["tiene_vencidos"] is False

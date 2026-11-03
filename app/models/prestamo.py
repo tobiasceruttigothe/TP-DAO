@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.domain.enums import EstadoFisico, EstadoPrestamo, TipoPrestamo
+from app.domain.multas import calculador_configurado
 
 
 class Prestamo(Base):
@@ -43,6 +44,24 @@ class Prestamo(Base):
 
     def esta_vencido(self, fecha: date) -> bool:
         return self.estado == EstadoPrestamo.ACTIVO and self.dias_atraso(fecha) > 0
+
+    @property
+    def dias_atraso_actual(self) -> int:
+        """Atraso a hoy si sigue activo, o el que tuvo si ya se devolvio."""
+        if self.estado == EstadoPrestamo.ACTIVO:
+            return self.dias_atraso(date.today())
+        if self.estado == EstadoPrestamo.DEVUELTO:
+            return self.dias_atraso(self.fecha_devolucion)
+        return 0
+
+    @property
+    def multa_actual(self) -> float:
+        """La multa cobrada si ya se devolvio, o la que se cobraria si se devolviera hoy."""
+        if self.estado == EstadoPrestamo.DEVUELTO:
+            return self.multa
+        if self.estado == EstadoPrestamo.ACTIVO:
+            return calculador_configurado().calcular(self.dias_atraso_actual)
+        return 0.0
 
     @property
     def es_interbibliotecario(self) -> bool:

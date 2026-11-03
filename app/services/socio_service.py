@@ -1,8 +1,12 @@
+from datetime import date, timedelta
+
 from sqlalchemy.orm import Session
+
+from app.config import settings
 
 from app.exceptions import DuplicadoError, NoEncontradoError, ReglaNegocioError
 from app.models import Socio
-from app.repositories import SocioRepository
+from app.repositories import PrestamoRepository, SocioRepository
 from app.repositories.base import Paginacion, ResultadoPaginado
 from app.schemas.socio import SocioActualizar, SocioCrear
 
@@ -54,6 +58,25 @@ class SocioService:
         socio.habilitar()
         self.db.commit()
         return socio
+
+    def inhabilitar_por_atraso(self, hoy: date | None = None) -> list[Socio]:
+        """Inhabilita a los socios con algun prestamo vencido hace mas de
+        `dias_atraso_inhabilitacion` dias. Devuelve los que inhabilito en esta pasada.
+        No hace commit; lo hace el proceso que lo llama."""
+        hoy = hoy or date.today()
+        limite = hoy - timedelta(days=settings.dias_atraso_inhabilitacion)
+        inhabilitados = []
+        for prestamo in PrestamoRepository(self.db).vencidos_antes_de(limite):
+            socio = prestamo.socio
+            if not socio.habilitado:
+                continue
+            titulo = prestamo.ejemplar.libro.titulo
+            socio.inhabilitar(
+                f"Préstamo N° {prestamo.id} ({titulo}) vencido hace {prestamo.dias_atraso(hoy)} días sin devolver"
+            )
+            inhabilitados.append(socio)
+        self.db.flush()
+        return inhabilitados
 
     def _validar_unicos(self, dni: str, email: str, excluir_id: int | None = None):
         por_dni = self.repo.buscar_por_dni(dni)

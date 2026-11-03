@@ -255,6 +255,8 @@ Algunos datos no se guardan porque se derivan de otros:
 | Horas de tránsito | `fecha_recepcion - fecha_despacho` (`Remito.horas_en_transito`) |
 | Nombre completo | `nombre + apellido` (`Socio.nombre_completo`) |
 | Préstamos en curso de un socio | Préstamos en SOLICITADO, EN_TRANSITO o ACTIVO |
+| Atraso y multa a la fecha | `Prestamo.dias_atraso_actual` y `Prestamo.multa_actual`: a hoy si sigue activo; lo que tuvo si ya se devolvió |
+| Socio con vencidos | `Socio.tiene_vencidos`: algún préstamo activo pasado de fecha |
 
 La multa sí se guarda (`prestamos.multa`) al registrar la devolución, para que no cambie si
 después se modifica la política de multas.
