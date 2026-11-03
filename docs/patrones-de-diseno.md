@@ -88,6 +88,51 @@ classDiagram
     EstadoRemito <|-- Cancelado
 ```
 
+### Máquina de estados
+
+Cada flecha es una operación que el estado de origen sobrescribe. Lo que no tiene flecha no está
+programado y, por lo tanto, se rechaza.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pendiente: se genera el remito
+    Pendiente --> Empaquetado: empaquetar()
+    Pendiente --> Cancelado: cancelar()
+    Empaquetado --> Despachado: despachar()
+    Empaquetado --> Cancelado: cancelar()
+    Despachado --> Recibido: recibir()
+    Despachado --> Extraviado: marcar_extraviado()
+    Recibido --> [*]
+    Extraviado --> [*]
+    Cancelado --> [*]
+```
+
+Qué puede hacer cada estado. "→ X" indica a qué estado pasa; "rechaza" significa que la operación
+lanza `TransicionInvalidaError` y el remito queda como estaba.
+
+| Estado | `empaquetar()` | `despachar()` | `recibir()` | `marcar_extraviado()` | `cancelar()` | Final |
+|---|---|---|---|---|---|---|
+| **Pendiente** | → Empaquetado | rechaza | rechaza | rechaza | → Cancelado | No |
+| **Empaquetado** | rechaza | → Despachado | rechaza | rechaza | → Cancelado | No |
+| **Despachado** | rechaza | rechaza | → Recibido | → Extraviado | rechaza | No |
+| **Recibido** | rechaza | rechaza | rechaza | rechaza | rechaza | Sí |
+| **Extraviado** | rechaza | rechaza | rechaza | rechaza | rechaza | Sí |
+| **Cancelado** | rechaza | rechaza | rechaza | rechaza | rechaza | Sí |
+
+Cada transición dispara, además, efectos sobre otras entidades. No los decide el estado sino
+`RemitoService`, porque dependen de si el remito es de **ida** (sede origen → sede destino del
+préstamo) o de **retorno** (vuelta del ejemplar a su sede):
+
+| Transición | Ida | Retorno |
+|---|---|---|
+| `empaquetar()` | Solo cambia el remito | Solo cambia el remito |
+| `despachar()` | Se valida que las dos sedes estén activas. Ejemplar y préstamo pasan a EN_TRANSITO | Ejemplar EN_TRANSITO (no se bloquea por sedes de baja: el ejemplar tiene que volver) |
+| `recibir()` | Préstamo ACTIVO (empieza a correr el plazo) y ejemplar PRESTADO | El ejemplar vuelve a estar disponible en su sede y se ofrece a la primera reserva pendiente |
+| `recibir()` con daño | Igual, y se registra una incidencia | Ejemplar EN_REPARACION y se registra una incidencia |
+| `recibir()` destruido | Ejemplar de BAJA, préstamo CANCELADO e incidencia | Ejemplar de BAJA e incidencia |
+| `marcar_extraviado()` | Ejemplar EXTRAVIADO, préstamo CANCELADO e incidencia | Ejemplar EXTRAVIADO e incidencia |
+| `cancelar()` | Préstamo CANCELADO; el ejemplar se libera | No permitido: lo rechaza el servicio antes de llegar al estado, porque el ejemplar tiene que volver a su sede |
+
 **Comportamiento por defecto en la clase base.** `EstadoRemito` implementa todas las operaciones
 lanzando `TransicionInvalidaError`. Cada estado concreto sobrescribe solo las que admite:
 
