@@ -1,6 +1,7 @@
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.models import Remito
+from app.models.remito import SECUENCIA_NUMERO_REMITO
 from app.repositories.base import BaseRepository, Paginacion, ResultadoPaginado
 
 
@@ -21,5 +22,4 @@ class RemitoRepository(BaseRepository[Remito]):
         return self.paginar(consulta, paginacion)
 
     def siguiente_numero(self) -> str:
-        ultimo = self.db.scalar(select(func.max(Remito.id))) or 0
-        return f"R-{ultimo + 1:06d}"
+        return f"R-{self.db.scalar(SECUENCIA_NUMERO_REMITO.next_value()):06d}"

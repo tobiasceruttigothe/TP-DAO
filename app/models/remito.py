@@ -1,11 +1,16 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Sequence, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.domain.enums import EstadoFisico, TipoIncidencia, TipoRemito
 from app.domain.estados_remito import EstadoRemito, Extraviado, Pendiente, estado_desde_nombre
+
+
+# Numeracion de remitos (R-000001, R-000002, ...). La da la base, asi dos remitos creados
+# al mismo tiempo nunca reciben el mismo numero.
+SECUENCIA_NUMERO_REMITO = Sequence("remitos_numero_seq", metadata=Base.metadata)
 
 
 class Remito(Base):
