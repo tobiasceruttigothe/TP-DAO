@@ -3,6 +3,7 @@ import { Alert, Card, Descriptions, Empty, Input, List, Table, Tabs, Tag, Typogr
 import { librosApi, prestamosApi, reservasApi, sociosApi } from '../../api'
 import useListado from '../../hooks/useListado'
 import useAccion from '../../hooks/useAccion'
+import Buscador from '../../componentes/Buscador'
 import EstadoTag from '../../componentes/EstadoTag'
 import { diasHasta, fecha, moneda } from '../../utiles/formato'
 
@@ -37,14 +38,7 @@ function BuscarLibros() {
   const { items, cargando, paginacion } = useListado(librosApi.listar, { q })
   return (
     <>
-      <Input.Search
-        allowClear
-        enterButton="Buscar"
-        size="large"
-        placeholder="Título o autor"
-        onSearch={setQ}
-        style={{ marginBottom: 16 }}
-      />
+      <Buscador size="large" placeholder="Buscá por título o autor" onBuscar={setQ} style={{ marginBottom: 16 }} />
       <Table
         rowKey="id"
         loading={cargando}
@@ -107,6 +101,7 @@ function MisPrestamos() {
         enterButton="Consultar"
         placeholder="Ingresá tu DNI"
         inputMode="numeric"
+        maxLength={10}
         loading={ejecutando}
         onSearch={buscar}
         style={{ marginBottom: 16, maxWidth: 400 }}

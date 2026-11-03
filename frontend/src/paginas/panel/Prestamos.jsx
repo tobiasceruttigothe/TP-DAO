@@ -13,6 +13,7 @@ import { Atraso, Multa } from '../../componentes/AtrasoMulta'
 import { SelectorSocio } from '../../componentes/Selectores'
 import { opcionesDe } from '../../utiles/estados'
 import { diasHasta, fecha, fechaApi, moneda, nombreSocio } from '../../utiles/formato'
+import { validar } from '../../utiles/reglas'
 
 const estaVencido = (p) => p.estado === 'ACTIVO' && diasHasta(p.fecha_vencimiento) < 0
 
@@ -26,7 +27,8 @@ function Devolucion({ prestamo, onCerrar, onDevuelto }) {
   }, [prestamo, form])
 
   async function registrar() {
-    const valores = await form.validateFields()
+    const valores = await validar(form)
+    if (!valores) return
     const resultado = await ejecutar(() =>
       prestamosApi.devolver(prestamo.id, { ...valores, fecha_devolucion: fechaApi(valores.fecha_devolucion) }),
     )

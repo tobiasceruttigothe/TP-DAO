@@ -5,6 +5,7 @@ import { sedesApi } from '../../api'
 import useCarga from '../../hooks/useCarga'
 import useAccion from '../../hooks/useAccion'
 import Encabezado from '../../componentes/Encabezado'
+import { reglasTelefono, reglasTexto, soloDigitos, validar } from '../../utiles/reglas'
 
 const FILTROS = { todas: undefined, activas: true, baja: false }
 
@@ -24,7 +25,8 @@ export default function Sedes() {
   }
 
   async function guardar() {
-    const valores = await form.validateFields()
+    const valores = await validar(form)
+    if (!valores) return
     const datosSede = { ...valores, email: valores.email || null }
     const ok = await ejecutar(
       () => (edicion.id ? sedesApi.actualizar(edicion.id, datosSede) : sedesApi.crear(datosSede)),
@@ -107,19 +109,19 @@ export default function Sedes() {
         forceRender
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="nombre" label="Nombre" rules={[{ required: true, min: 2 }]}>
+          <Form.Item name="nombre" label="Nombre" rules={reglasTexto('el nombre', 2, 100)}>
+            <Input maxLength={100} />
+          </Form.Item>
+          <Form.Item name="direccion" label="Dirección" rules={reglasTexto('la dirección', 3, 200)}>
+            <Input maxLength={200} />
+          </Form.Item>
+          <Form.Item name="telefono" label="Teléfono" rules={reglasTelefono} normalize={soloDigitos} extra="Opcional. Solo números">
+            <Input inputMode="numeric" maxLength={20} />
+          </Form.Item>
+          <Form.Item name="email" label="Email" rules={[{ type: 'email', message: 'Ingresá un email válido' }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="direccion" label="Dirección" rules={[{ required: true, min: 3 }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="telefono" label="Teléfono">
-            <Input />
-          </Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ type: 'email' }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="horario" label="Horario">
+          <Form.Item name="horario" label="Horario" rules={[{ max: 200, message: 'Máximo 200 caracteres' }]}>
             <Input placeholder="Lun a Vie 8 a 20" />
           </Form.Item>
         </Form>

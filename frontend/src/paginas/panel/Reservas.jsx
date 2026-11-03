@@ -10,6 +10,7 @@ import EstadoTag from '../../componentes/EstadoTag'
 import { SelectorLibro, SelectorSocio } from '../../componentes/Selectores'
 import { opcionesDe } from '../../utiles/estados'
 import { fecha, nombreSocio } from '../../utiles/formato'
+import { validar } from '../../utiles/reglas'
 
 function NuevaReserva({ abierta, libroInicial, onCerrar, onCreada }) {
   const [form] = Form.useForm()
@@ -34,7 +35,8 @@ function NuevaReserva({ abierta, libroInicial, onCerrar, onCreada }) {
   }, [libroId])
 
   async function crear() {
-    const valores = await form.validateFields()
+    const valores = await validar(form)
+    if (!valores) return
     const reserva = await ejecutar(() => reservasApi.crear(valores))
     if (!reserva) return
     onCreada(

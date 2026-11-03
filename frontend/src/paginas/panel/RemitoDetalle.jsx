@@ -8,6 +8,7 @@ import Encabezado from '../../componentes/Encabezado'
 import EstadoTag from '../../componentes/EstadoTag'
 import { ESTADOS, opcionesDe } from '../../utiles/estados'
 import { fechaHora } from '../../utiles/formato'
+import { validar } from '../../utiles/reglas'
 
 const RECORRIDO = ['PENDIENTE', 'EMPAQUETADO', 'DESPACHADO', 'RECIBIDO']
 
@@ -57,7 +58,8 @@ export default function RemitoDetalle() {
   }
 
   async function confirmar() {
-    const valores = await form.validateFields()
+    const valores = await validar(form)
+    if (!valores) return
     const ok = await ejecutar(() => remitosApi[accion](remito.id, valores), ACCIONES[accion].exito)
     if (ok) {
       setAccion(null)
