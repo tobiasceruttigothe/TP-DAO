@@ -114,3 +114,17 @@ def texto(minimo: int, maximo: int):
 def texto_opcional(maximo: int):
     """Texto opcional: si viene vacio se guarda como nulo."""
     return Annotated[str | None, BeforeValidator(_vacio_a_nulo), _largo(1, maximo)]
+
+
+def _validar_contrasena(valor: str) -> str:
+    if len(valor) < 8:
+        raise ValueError("debe tener al menos 8 caracteres")
+    if len(valor.encode("utf-8")) > 72:
+        raise ValueError("no puede tener más de 72 caracteres")
+    if not re.search(r"[A-Za-z]", valor) or not re.search(r"\d", valor):
+        raise ValueError("debe tener letras y números")
+    return valor
+
+
+Contrasena = Annotated[str, AfterValidator(_validar_contrasena)]
+

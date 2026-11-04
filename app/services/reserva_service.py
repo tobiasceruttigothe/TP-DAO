@@ -9,6 +9,7 @@ from app.models import Ejemplar, Reserva
 from app.repositories import EjemplarRepository, LibroRepository, ReservaRepository
 from app.repositories.base import Paginacion, ResultadoPaginado
 from app.schemas.reserva import ReservaCrear
+from app.services.eventos import ReservaDisponible, publicador
 from app.services.sede_service import SedeService
 from app.services.socio_service import SocioService
 
@@ -20,6 +21,7 @@ class ReservaService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = ReservaRepository(db)
+        self.eventos = publicador(db)
         self.ejemplares = EjemplarRepository(db)
         self.libros = LibroRepository(db)
 
@@ -102,6 +104,7 @@ class ReservaService:
         reserva.estado = EstadoReserva.DISPONIBLE
         reserva.fecha_expiracion = hoy + timedelta(days=settings.dias_validez_reserva)
         self.db.flush()
+        self.eventos.publicar(ReservaDisponible(reserva))
 
     def _liberar_ejemplar_de(self, reserva: Reserva, hoy: date | None = None):
         if reserva.ejemplar is None or reserva.ejemplar.estado != EstadoEjemplar.RESERVADO:

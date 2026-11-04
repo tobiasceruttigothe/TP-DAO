@@ -36,6 +36,9 @@ class PrestamoRepository(BaseRepository[Prestamo]):
         )
         return self.db.scalar(consulta) > 0
 
+    def activos(self) -> list[Prestamo]:
+        return list(self.db.scalars(select(Prestamo).where(Prestamo.estado == EstadoPrestamo.ACTIVO)))
+
     def vencidos_antes_de(self, fecha: date) -> list[Prestamo]:
         """Prestamos activos cuyo vencimiento fue anterior a la fecha indicada."""
         consulta = (

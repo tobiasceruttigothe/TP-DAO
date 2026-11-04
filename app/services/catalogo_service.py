@@ -103,6 +103,29 @@ class CatalogoService:
         self.db.commit()
         return ejemplar
 
+    def marcar_extraviado(self, ejemplar_id: int) -> Ejemplar:
+        """Para un ejemplar que deberia estar en el estante y no aparece (por ejemplo, un
+        faltante del inventario)."""
+        ejemplar = self.obtener_ejemplar(ejemplar_id)
+        if ejemplar.estado not in (EstadoEjemplar.DISPONIBLE, EstadoEjemplar.EN_REPARACION):
+            raise ReglaNegocioError(
+                f"Solo se marca extraviado un ejemplar disponible o en reparación (estado {ejemplar.estado.value})"
+            )
+        ejemplar.cambiar_estado(EstadoEjemplar.EXTRAVIADO)
+        self.db.commit()
+        return ejemplar
+
+    def recuperar(self, ejemplar_id: int) -> Ejemplar:
+        """Un ejemplar que figuraba extraviado aparecio: vuelve a circular."""
+        ejemplar = self.obtener_ejemplar(ejemplar_id)
+        if ejemplar.estado != EstadoEjemplar.EXTRAVIADO:
+            raise ReglaNegocioError("El ejemplar no figura extraviado")
+        ejemplar.liberar()
+        self.db.flush()
+        ReservaService(self.db).asignar_ejemplar_liberado(ejemplar)
+        self.db.commit()
+        return ejemplar
+
     # --- Disponibilidad ---
 
     def disponibilidad(self, libro_id: int) -> DisponibilidadLibro:
