@@ -48,3 +48,41 @@ class EstadoReserva(str, Enum):
     CUMPLIDA = "CUMPLIDA"
     CANCELADA = "CANCELADA"
     VENCIDA = "VENCIDA"
+
+
+class Rol(str, Enum):
+    ADMIN = "ADMIN"
+    SOCIO = "SOCIO"
+
+
+class EstadoUsuario(str, Enum):
+    PENDIENTE_CONFIRMACION = "PENDIENTE_CONFIRMACION"  # todavia no confirmo el email
+    PENDIENTE_APROBACION = "PENDIENTE_APROBACION"  # confirmo el email, espera al admin
+    ACTIVO = "ACTIVO"
+    RECHAZADO = "RECHAZADO"
+
+
+class EstadoPedido(str, Enum):
+    PENDIENTE = "PENDIENTE"
+    APROBADO = "APROBADO"
+    RECHAZADO = "RECHAZADO"
+    CANCELADO = "CANCELADO"  # lo cancelo el socio antes de que se resolviera
+
+
+class TipoNotificacion(str, Enum):
+    REGISTRO_PENDIENTE = "REGISTRO_PENDIENTE"
+    CUENTA_APROBADA = "CUENTA_APROBADA"
+    CUENTA_RECHAZADA = "CUENTA_RECHAZADA"
+    PEDIDO_NUEVO = "PEDIDO_NUEVO"
+    PEDIDO_APROBADO = "PEDIDO_APROBADO"
+    PEDIDO_RECHAZADO = "PEDIDO_RECHAZADO"
+    RESERVA_DISPONIBLE = "RESERVA_DISPONIBLE"
+    LISTO_PARA_RETIRAR = "LISTO_PARA_RETIRAR"
+    PRESTAMO_POR_VENCER = "PRESTAMO_POR_VENCER"
+    PRESTAMO_VENCIDO = "PRESTAMO_VENCIDO"
+    SOCIO_INHABILITADO = "SOCIO_INHABILITADO"
+
+
+class EstadoInventario(str, Enum):
+    EN_CURSO = "EN_CURSO"
+    CERRADO = "CERRADO"

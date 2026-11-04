@@ -27,6 +27,31 @@ class Settings(BaseSettings):
     proceso_automatico: bool = True
     intervalo_proceso_minutos: int = 60
 
+    # Seguridad. El secreto firma los tokens: en un despliegue real se cambia por uno propio
+    jwt_secreto: str = "cambiar-este-secreto-en-el-env-para-produccion"
+    jwt_minutos: int = 480
+    # Costo del hash de contrasenas: 12 es lo recomendado; los tests usan el minimo para ir rapido
+    bcrypt_rondas: int = 12
+    # Administrador que se crea al arrancar si no existe ninguno
+    admin_email: str = "admin@example.com"
+    admin_contrasena: str = "admin123"
+    admin_nombre: str = "Administrador"
+    crear_admin_al_iniciar: bool = True
+
+    # Correo. Modo "smtp" envia de verdad (Mailpit en desarrollo, Gmail en la demo);
+    # "memoria" los guarda para los tests; "desactivado" no envia nada.
+    correo_modo: str = "smtp"
+    smtp_host: str = "localhost"
+    smtp_puerto: int = 1025
+    smtp_usuario: str = ""
+    smtp_contrasena: str = ""
+    smtp_tls: bool = False
+    correo_remitente: str = "Red de Bibliotecas <no-responder@example.com>"
+    # Direccion del frontend, para los links de los correos
+    url_frontend: str = "http://localhost:3000"
+    # Dias de anticipacion para avisar que un prestamo esta por vencer
+    dias_aviso_vencimiento: int = 2
+
     @property
     def lista_cors_origenes(self) -> list[str]:
         return [origen.strip() for origen in self.cors_origenes.split(",") if origen.strip()]
