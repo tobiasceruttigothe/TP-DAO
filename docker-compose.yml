@@ -22,11 +22,24 @@ services:
       DATABASE_URL: postgresql+psycopg2://biblioteca:biblioteca@db:5432/biblioteca
       TEST_DATABASE_URL: postgresql+psycopg2://biblioteca:biblioteca@db:5432/biblioteca_test
       CORS_ORIGENES: ${CORS_ORIGENES:-http://localhost:3000,http://localhost:5173,http://localhost:4200}
+      URL_FRONTEND: ${URL_FRONTEND:-http://localhost:3000}
+      JWT_SECRETO: ${JWT_SECRETO:-cambiar-este-secreto-en-el-env-para-produccion}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_CONTRASENA: ${ADMIN_CONTRASENA:-admin123}
+      # Por defecto los correos van a Mailpit (http://localhost:8025). Para Gmail ver .env.example
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PUERTO: ${SMTP_PUERTO:-1025}
+      SMTP_USUARIO: ${SMTP_USUARIO:-}
+      SMTP_CONTRASENA: ${SMTP_CONTRASENA:-}
+      SMTP_TLS: ${SMTP_TLS:-false}
+      CORREO_REMITENTE: ${CORREO_REMITENTE:-Red de Bibliotecas <no-responder@example.com>}
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   web:
     build:
@@ -55,6 +68,13 @@ services:
       - pgadmin:/var/lib/pgadmin
     depends_on:
       - db
+
+  # Buzon de prueba: recibe todos los correos que manda el sistema, sin enviarlos a nadie.
+  # Bandeja en http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.30
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
 
 volumes:
   pgdata:
