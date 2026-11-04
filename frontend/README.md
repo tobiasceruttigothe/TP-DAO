@@ -3,12 +3,16 @@
 Interfaz web del sistema, hecha con **React 18 + Vite** y **Ant Design 5**. Consume la API del
 backend (ver el [README principal](../README.md)).
 
-Tiene dos partes:
+Tiene tres partes:
 
-- **Panel del personal** (`/`): préstamos, remitos, reservas, catálogo, socios, sedes,
-  incidencias y reportes.
-- **Consulta para socios** (`/consulta`): sin login. Buscar libros y ver en qué sedes hay
-  ejemplares libres, y consultar préstamos, vencimientos y reservas ingresando el DNI.
+- **Sitio público** (`/`): sin login. Catálogo con disponibilidad por sede, ingreso
+  (`/ingresar`), registro de socios (`/registro`) y confirmación del email (`/confirmar`).
+- **Área del socio** (`/socio`): sus préstamos y reservas, pedidos, historial de lectura y
+  notificaciones. Pide libros desde el catálogo.
+- **Panel del administrador** (`/panel`): pedidos, préstamos, remitos, reservas, catálogo,
+  inventario, etiquetas con código de barras, socios, usuarios, sedes, incidencias y reportes.
+
+Credenciales de prueba en [docs/despliegue-local.md](../docs/despliegue-local.md#usuarios-para-probar).
 
 ## Levantarlo
 
@@ -40,16 +44,23 @@ src/
   api/          llamadas a la API (cliente.js configura axios; index.js agrupa por recurso)
   componentes/  piezas reutilizables: etiquetas de estado, buscador, selectores, encabezado
   hooks/        useListado (tablas paginadas), useCarga (cargar datos), useAccion (operaciones)
-  layouts/      marco del panel (menú lateral) y de la consulta pública
+  layouts/      marco del panel (menú lateral) y del sitio público / área del socio
   paginas/
-    panel/      una pantalla por sección del menú
-    consulta/   consulta para socios
+    panel/      una pantalla por sección del menú del administrador
+    publico/    catálogo, ingreso, registro, confirmación del email
+    socio/      préstamos, pedidos e historial del socio
+    compartido/ pantallas de los dos roles (notificaciones)
+  sesion/       usuario conectado (ProveedorSesion, useSesion) y RutaProtegida por rol
   utiles/       textos y colores de cada estado, formatos, reglas de validación
 ```
 
 ## Convenciones
 
 - Nombres en español, igual que el backend. Componentes en PascalCase, un archivo por pantalla.
+- La sesión vive en `src/sesion/`. El token se guarda en `localStorage` y el cliente de axios lo
+  agrega en cada llamada; si la API responde 401, la sesión se cierra. Las rutas de cada rol se
+  envuelven con `<RutaProtegida rol="...">`, que es solo para la navegación: los permisos los
+  controla la API.
 - Toda llamada a la API pasa por `src/api/`. Los errores llegan como `Error` con el mensaje que
   devuelve el backend, y se muestran con `useAccion` o `useListado`.
 - Los estados (`ACTIVO`, `DESPACHADO`, ...) se muestran siempre con `<EstadoTag>`, que toma el

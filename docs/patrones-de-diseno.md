@@ -1,13 +1,15 @@
 # Patrones de diseño
 
-La consigna exige al menos dos patrones. Se aplicaron tres: **State**, **Strategy** y
-**Repository**. Se evaluó también **Singleton** y se descartó; los motivos están al final.
+La consigna exige al menos dos patrones. Se aplicaron cuatro: **State**, **Strategy**,
+**Repository** y **Observer**. Se evaluó también **Singleton** y se descartó; los motivos están
+al final.
 
 | Patrón | Dónde | Problema que resuelve |
 |---|---|---|
 | State | `app/domain/estados_remito.py`, `app/models/remito.py` | Ciclo de vida del remito |
 | Strategy | `app/domain/multas.py` | Cálculo de multas según atraso y estado de devolución |
 | Repository | `app/repositories/` | Separar el acceso a datos de la lógica de negocio |
+| Observer | `app/services/eventos.py`, `app/services/notificaciones.py` | Avisar a socios y administradores sin acoplar los servicios a los canales de aviso |
 
 ---
 
@@ -413,6 +415,142 @@ commit al final del servicio, la operación entera se confirma o se descarta (un
 
 ---
 
+## Observer: notificaciones
+
+### Problema
+
+Muchas operaciones tienen que avisarle a alguien: un pedido nuevo le llega al administrador, la
+aprobación de una cuenta le llega al socio, una reserva que queda lista, un libro que llegó a
+la sede, un préstamo por vencer. Cada aviso sale por dos canales: la campanita del sistema y el
+correo.
+
+Si cada servicio armara la notificación y mandara el correo, `PedidoService`,
+`ReservaService`, `RemitoService` y los demás conocerían la tabla de notificaciones, el
+servidor de correo y el formato del mensaje. Sumar un canal (por ejemplo, WhatsApp) obligaría a
+tocar todos los servicios.
+
+### Solución
+
+Los servicios **publican un evento** y no saben quién lo escucha. Los **observadores** se
+suscriben al publicador y deciden qué hacer con cada evento.
+
+```mermaid
+classDiagram
+    class Evento {
+        <<abstract>>
+        +destinatarios(db) list~Usuario~
+        +contenido() Contenido
+    }
+    class PedidoNuevo
+    class PedidoAprobado
+    class ReservaDisponible
+    class PrestamoPorVencer
+    class OtrosEventos["... (11 en total)"]
+    Evento <|-- PedidoNuevo
+    Evento <|-- PedidoAprobado
+    Evento <|-- ReservaDisponible
+    Evento <|-- PrestamoPorVencer
+    Evento <|-- OtrosEventos
+
+    class PublicadorEventos {
+        -observadores: list
+        +suscribir(observador)
+        +publicar(evento)
+    }
+    class ObservadorEventos {
+        <<abstract>>
+        +notificar(destinatarios, contenido)
+    }
+    class NotificacionesEnSistema
+    class NotificacionesPorCorreo
+    ObservadorEventos <|-- NotificacionesEnSistema
+    ObservadorEventos <|-- NotificacionesPorCorreo
+    PublicadorEventos o-- ObservadorEventos
+    PublicadorEventos ..> Evento : publica
+```
+
+| Rol del patrón | Clase |
+|---|---|
+| Sujeto (publicador) | `PublicadorEventos` |
+| Observador abstracto | `ObservadorEventos` |
+| Observadores concretos | `NotificacionesEnSistema` (guarda la notificación), `NotificacionesPorCorreo` (manda el mail) |
+| Mensaje | Subclases de `Evento`: cada una sabe a quién le interesa y qué texto lleva |
+
+Un servicio solo hace esto:
+
+```python
+self.eventos.publicar(PedidoAprobado(pedido))
+```
+
+### Eventos
+
+| Evento | Lo publica | Le llega a |
+|---|---|---|
+| `RegistroPendiente` | `CuentaService.confirmar_email` | Administradores |
+| `CuentaAprobada` / `CuentaRechazada` | `CuentaService.aprobar` / `rechazar` | El socio |
+| `PedidoNuevo` | `PedidoService.crear` | Administradores |
+| `PedidoAprobado` / `PedidoRechazado` | `PedidoService.reservar`, `enviar_desde` / `rechazar` | El socio |
+| `ReservaDisponible` | `ReservaService` al apartar un ejemplar | El socio |
+| `ListoParaRetirar` | `RemitoService.recibir` (remito de ida) | El socio |
+| `PrestamoPorVencer` / `PrestamoVencido` | Proceso de vencimientos | El socio |
+| `SocioInhabilitado` | `SocioService.inhabilitar`, inhabilitación automática | El socio |
+
+### El correo respeta la transacción
+
+`NotificacionesEnSistema` agrega la fila de `notificaciones` en la misma sesión que la operación:
+si la operación falla y se deshace, la notificación también.
+
+Un correo no se puede deshacer una vez enviado. Por eso `NotificacionesPorCorreo` no lo manda en
+el momento: lo deja en espera en la sesión y lo envía recién cuando la base confirma el
+`commit` (evento `after_commit` de SQLAlchemy). Si hay `rollback`, los correos en espera se
+descartan. Así nunca le llega a un socio un "tu pedido fue aprobado" de una operación que no
+quedó guardada.
+
+El envío en sí lo hace una clase de `app/services/correo.py` elegida por configuración
+(`CORREO_MODO`): `CorreoSmtp` (Mailpit o Gmail), `CorreoEnMemoria` (tests) o
+`CorreoDesactivado`. Es otra aplicación de clases abstractas: el observador no sabe cuál usa.
+
+### Cómo agregar un canal
+
+1. Crear una clase que herede de `ObservadorEventos` e implemente `notificar`.
+2. Sumarla en `publicador()` (`app/services/eventos.py`).
+
+Ningún servicio cambia.
+
+### Cómo agregar un aviso
+
+1. Crear una subclase de `Evento` con `destinatarios` y `contenido`.
+2. Agregar su tipo en `TipoNotificacion` (y en `frontend/src/utiles/estados.js` si se muestra).
+3. Publicarla desde el servicio que corresponda.
+
+### Tests
+
+`tests/test_notificaciones.py`: cada evento llega a quien corresponde, por los dos canales; los
+socios que no reciben correos solo ven la notificación en el sistema; con `rollback` no sale
+ningún correo; solo el dueño puede marcar sus notificaciones como leídas.
+
+---
+
+## Usuarios y roles: por qué no Keycloak
+
+Para el inicio de sesión se evaluó **Keycloak** (servidor de identidad externo) y se eligió una
+implementación propia con **JWT**:
+
+- La consigna pide practicar programación orientada a objetos en Python. Con Keycloak, el
+  registro, la confirmación del email y los roles quedarían en un sistema externo configurado
+  por pantalla, y no habría código del grupo para mostrar.
+- El sistema tiene dos roles fijos (administrador y socio) y un flujo de alta propio
+  (registro, confirmar email, aprobación del administrador). Keycloak no conoce la aprobación
+  por la biblioteca ni el vínculo usuario-socio: igual habría que programarlos.
+- Suma un contenedor pesado (Java, con su propia base) a un proyecto que se levanta en una PC
+  de estudiante.
+
+La implementación propia usa piezas estándar: contraseñas con **bcrypt** y sesiones con tokens
+**JWT** firmados (librería PyJWT). Los detalles están en
+[arquitectura.md](arquitectura.md#seguridad).
+
+---
+
 ## Singleton: evaluado y descartado
 
 El apunte presenta Singleton con el ejemplo de la conexión a la base de datos (15.3.2). Se
@@ -445,9 +583,9 @@ Sin ser patrones de diseño, el código usa los temas de la materia:
 
 | Tema | Dónde |
 |---|---|
-| Clases abstractas (`ABC`, `@abstractmethod`) | `EstadoRemito`, `EstrategiaMulta` |
-| Herencia y polimorfismo | Estados del remito, estrategias de multa, repositorios |
-| Encapsulamiento y métodos de negocio en la entidad | `Socio.inhabilitar()`, `Sede.dar_de_baja()`, `Ejemplar.liberar()`, `Prestamo.activar()` |
+| Clases abstractas (`ABC`, `@abstractmethod`) | `EstadoRemito`, `EstrategiaMulta`, `Evento`, `ObservadorEventos`, `ServicioCorreo` |
+| Herencia y polimorfismo | Estados del remito, estrategias de multa, eventos y observadores, repositorios |
+| Encapsulamiento y métodos de negocio en la entidad | `Socio.inhabilitar()`, `Sede.dar_de_baja()`, `Ejemplar.liberar()`, `Prestamo.activar()`, `Usuario.aprobar()`, `Pedido.resolver()` |
 | Propiedades (`@property`) | `Socio.nombre_completo`, `Ejemplar.esta_disponible`, `Remito.horas_en_transito` |
 | Métodos mágicos | `__str__` en las entidades |
 | Composición | `CalculadorMulta` contiene una estrategia; `Remito` contiene sus movimientos |

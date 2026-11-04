@@ -7,7 +7,7 @@ frontend en React (`frontend/`, con su propio README y convenciones).
 ## Comandos
 
 ```bash
-docker compose up --build              # web :3000, API :8000, pgAdmin :5050, Postgres
+docker compose up --build              # web :3000, API :8000, Mailpit :8025, pgAdmin :5050, Postgres
 docker compose exec api pytest         # tests
 docker compose exec api python -m app.seed
 alembic revision --autogenerate -m "descripcion"   # tras cambiar un modelo
@@ -32,6 +32,13 @@ cd frontend && npm run lint
 - Si un cambio afecta el modelo, un patrón, un proceso o una regla, actualizar el documento
   correspondiente en `docs/`. Los diagramas son Mermaid (GitHub los dibuja).
 - Si se agrega un estado en un enum del backend, agregarlo también en `frontend/src/utiles/estados.js`.
+- Permisos en los routers con las dependencias de `app/routers/dependencias.py`: `SOLO_ADMIN` para
+  el panel, `socio_actual` para `/mi/...`. Un endpoint nuevo del panel lleva `SOLO_ADMIN` y su
+  caso en `tests/test_permisos.py`.
+- Los avisos a usuarios se publican como eventos (`app/services/eventos.py`), nunca mandando el
+  correo desde el servicio. Los correos salen recién después del commit.
+- En los tests, `client` es un administrador, `anonimo` no tiene sesión y `socio_conectado` da
+  (cliente, socio). Los correos enviados quedan en el fixture `correos`.
 - Las búsquedas por texto usan `contiene()` de `app/repositories/base.py` (ignora tildes).
 - Las reglas de formato están en `app/schemas/validaciones.py` y su espejo en
   `frontend/src/utiles/reglas.js`: si se cambia una, cambiar la otra. Los DTO de respuesta no
@@ -42,10 +49,13 @@ cd frontend && npm run lint
 - State: `app/domain/estados_remito.py` (ciclo de vida del remito).
 - Strategy: `app/domain/multas.py` (cálculo de multas).
 - Repository: `app/repositories/`.
-- Singleton descartado a propósito; la justificación está en el README.
+- Observer: `app/services/eventos.py` y `app/services/notificaciones.py` (notificaciones y correo).
+- Singleton descartado a propósito; la justificación está en el README. Keycloak también
+  (ver `docs/patrones-de-diseno.md`): el login es propio con JWT + bcrypt.
 
 ## Pendientes / ideas
 
-- Opcionales de la consigna no encarados: notificaciones, recomendaciones, inventario con códigos.
+- Opcional de la consigna no encarado: recomendaciones.
 - Las multas se registran pero no hay circuito de pago; podría inhabilitarse automáticamente
   al socio con multas impagas.
+- No hay "olvidé mi contraseña": se podría reutilizar el token de confirmación por correo.

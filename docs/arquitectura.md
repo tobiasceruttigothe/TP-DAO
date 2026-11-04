@@ -17,6 +17,7 @@ flowchart LR
     end
     ORM -- psycopg2 --> DB[(PostgreSQL)]
     MIG[Alembic] -. crea/actualiza tablas .-> DB
+    SRV -- SMTP, después del commit --> MAIL[Mailpit o Gmail]
 ```
 
 ## Capas
@@ -178,6 +179,87 @@ con una sola instancia, como en este proyecto, no ocurre.
 - Solo los servicios hacen `commit`, una vez por operación de negocio. Los repositorios hacen
   `flush`. La justificación está en [patrones-de-diseno.md](patrones-de-diseno.md#repository-acceso-a-datos).
 
+## Seguridad
+
+### Roles
+
+| Rol | Cómo se crea | Qué puede hacer |
+|---|---|---|
+| Visitante (sin sesión) | - | Ver el catálogo y la disponibilidad por sede, registrarse |
+| Socio | Se registra solo, confirma el email y un administrador lo aprueba | Lo anterior, más: pedir libros, ver sus préstamos, reservas, pedidos, historial y notificaciones |
+| Administrador | El primero sale de la configuración (`ADMIN_EMAIL`); los demás los crea un administrador | Todo el panel: préstamos, remitos, socios, catálogo, pedidos, usuarios, inventario, reportes |
+
+Los permisos se controlan en la capa de routers con dependencias de FastAPI
+(`app/routers/dependencias.py`):
+
+- `usuario_actual`: lee el token del encabezado `Authorization: Bearer ...` y devuelve el
+  usuario. Sin token o con uno vencido responde **401**.
+- `requiere_admin`: además exige el rol administrador; si no, **403**.
+- `socio_actual`: exige el rol socio y devuelve su `Socio`. Los endpoints `/mi/...` lo usan, así
+  un socio solo puede ver sus propios datos: el id nunca viaja en la URL.
+
+Los routers del panel se declaran con `dependencies=SOLO_ADMIN`. En `sedes` y `libros` solo las
+escrituras lo llevan: la consulta del catálogo es pública. Los servicios no conocen al usuario
+conectado salvo cuando la regla lo necesita (por ejemplo, el socio que hace el pedido).
+
+### Contraseñas y sesión
+
+- Las contraseñas se guardan con **bcrypt** (`app/seguridad/contrasenas.py`), nunca en texto
+  plano. bcrypt es lento a propósito y agrega una sal distinta a cada contraseña.
+- Al ingresar, la API devuelve un **JWT** firmado con `JWT_SECRETO` (`app/seguridad/tokens.py`)
+  que lleva el id del usuario, el rol y el vencimiento (`JWT_MINUTOS`, 8 horas por defecto). La
+  API no guarda sesiones: verifica la firma en cada petición y vuelve a leer el usuario, así una
+  cuenta rechazada deja de funcionar aunque tenga un token vigente.
+- El frontend guarda el token en `localStorage` y lo agrega en cada llamada. Ante un 401 cierra
+  la sesión.
+
+### Alta de un socio
+
+```mermaid
+sequenceDiagram
+    actor S as Persona
+    participant W as Frontend
+    participant A as API
+    participant M as Correo
+    actor AD as Administrador
+    S->>W: completa el registro
+    W->>A: POST /auth/registro
+    A->>A: crea Socio inhabilitado + Usuario PENDIENTE_CONFIRMACION
+    A-->>M: "Confirmá tu email" (enlace con token)
+    S->>W: abre el enlace
+    W->>A: POST /auth/confirmar
+    A->>A: Usuario PENDIENTE_APROBACION
+    A-->>AD: notificación y correo "Nuevo socio para aprobar"
+    AD->>A: POST /usuarios/{id}/aprobar
+    A->>A: Usuario ACTIVO, Socio habilitado
+    A-->>M: "Tu cuenta fue aprobada"
+    S->>W: ingresa
+```
+
+Si el DNI y el email ya corresponden a un socio cargado por la biblioteca, la cuenta se vincula
+a ese socio y queda activa al confirmar el email, sin pasar por la aprobación.
+
+El enlace de confirmación lleva un token aleatorio (`secrets.token_urlsafe`) que se borra al
+usarse. La confirmación es un `POST` desde la página, no un `GET` del enlace: así un programa
+que abra los enlaces del correo para revisarlos no confirma la cuenta por su cuenta.
+
+## Correo
+
+`app/services/correo.py` elige cómo enviar según `CORREO_MODO`:
+
+| Modo | Clase | Uso |
+|---|---|---|
+| `smtp` | `CorreoSmtp` | Envía por SMTP en un hilo aparte. En desarrollo va a **Mailpit**, un buzón de prueba que recibe todo y no lo reenvía; en la demo puede ir a **Gmail** |
+| `memoria` | `CorreoEnMemoria` | Tests: guarda los correos en una lista para revisarlos |
+| `desactivado` | `CorreoDesactivado` | No envía nada |
+
+Los correos salen después del `commit` (ver [Observer](patrones-de-diseno.md#observer-notificaciones)).
+Si el servidor de correo no responde, se registra el error en el log y la operación sigue: el
+socio igual ve la notificación en el sistema.
+
+Los socios de los datos de ejemplo tienen emails inventados (`@example.com`) y
+`recibe_correos = false`: ven sus notificaciones en el sistema pero no se les manda nada.
+
 ## Decisiones técnicas
 
 | Decisión | Alternativa | Por qué |
@@ -189,7 +271,8 @@ con una sola instancia, como en este proyecto, no ocurre.
 | **Pydantic** | Validar a mano | Valida tipos y formatos antes de llegar al servicio y documenta los contratos en Swagger. |
 | **Docker Compose** | Instalar todo localmente | Cualquier integrante levanta el sistema completo (base + API) con un comando y la misma versión de todo. |
 | **pytest contra Postgres** | Tests con SQLite en memoria | Se prueba contra el mismo motor que en producción; algunas consultas (`ilike`, agregaciones) se comportan distinto según el motor. |
-| **Sin autenticación** | Login con roles | La consigna no lo pide. Se puede agregar sin cambiar los servicios. |
+| **JWT propio + bcrypt** | Keycloak, sesiones en el servidor | Dos roles fijos y un alta con aprobación propia; ver [patrones-de-diseno.md](patrones-de-diseno.md#usuarios-y-roles-por-qué-no-keycloak). JWT no necesita guardar sesiones. |
+| **Mailpit** | Mandar siempre a Gmail | Los correos de prueba no llegan a nadie real y se ven en el navegador. Gmail queda para la demo con una variable. |
 | **React + Vite** | Angular, Vue | La opción más difundida y la que el grupo conoce. Vite compila rápido y recarga al guardar. |
 | **JavaScript** | TypeScript | Menos configuración y curva de aprendizaje para un grupo con poco tiempo. |
 | **Ant Design** | Material UI, Bootstrap | Pensada para paneles de gestión: tablas paginadas, formularios con validación, línea de tiempo y pasos ya resueltos, y traducida al español. |
@@ -215,6 +298,17 @@ Todo se configura por variables de entorno (`app/config.py`, ejemplo en `.env.ex
 | `DIAS_ATRASO_INHABILITACION` | 30 | Días de atraso para inhabilitar automáticamente al socio |
 | `PROCESO_AUTOMATICO` | `true` | Si la API corre sola el proceso de vencimientos |
 | `INTERVALO_PROCESO_MINUTOS` | 60 | Cada cuánto lo corre |
+| `DIAS_AVISO_VENCIMIENTO` | 2 | Con cuántos días de anticipación se avisa que un préstamo vence |
+| `JWT_SECRETO` | texto de ejemplo | Clave con la que se firman las sesiones. **Cambiarla** fuera del entorno de desarrollo |
+| `JWT_MINUTOS` | 480 | Duración de la sesión |
+| `BCRYPT_RONDAS` | 12 | Costo del hash de contraseñas (los tests usan 4) |
+| `ADMIN_EMAIL` / `ADMIN_CONTRASENA` | `admin@example.com` / `admin123` | Administrador que se crea al arrancar si no hay ninguno |
+| `CREAR_ADMIN_AL_INICIAR` | `true` | Si la API crea ese administrador |
+| `CORREO_MODO` | `smtp` | `smtp`, `memoria` o `desactivado` |
+| `SMTP_HOST` / `SMTP_PUERTO` | `localhost` / 1025 (`mailpit` en Docker) | Servidor de correo |
+| `SMTP_TLS`, `SMTP_USUARIO`, `SMTP_CONTRASENA` | vacíos | Para Gmail: `true`, la cuenta y una contraseña de aplicación |
+| `CORREO_REMITENTE` | `Red de Bibliotecas <no-responder@example.com>` | Remitente de los correos |
+| `URL_FRONTEND` | `http://localhost:3000` | Base de los enlaces de los correos |
 
 ## Despliegue
 
@@ -224,6 +318,7 @@ flowchart LR
         WEB[web<br/>nginx:1.27-alpine<br/>puerto 3000] --> API
         PGA[pgadmin<br/>puerto 5050] --> DB
         API[api<br/>python:3.12-slim<br/>puerto 8000] -- espera healthcheck --> DB[(db<br/>postgres:16-alpine<br/>puerto 5432)]
+        API -- SMTP 1025 --> MP[mailpit<br/>axllent/mailpit:v1.30<br/>puerto 8025]
         DB --- VOL[(volumen pgdata)]
     end
 ```
@@ -237,6 +332,8 @@ flowchart LR
   (`frontend/nginx.conf`). La URL de la API se fija al compilar (`VITE_API_URL`). Nginx devuelve
   `index.html` para cualquier ruta, así funcionan las direcciones del panel (`/remitos/3`) al
   recargar la página.
+- `mailpit`: buzón de prueba. Recibe todos los correos que manda la API y los muestra en
+  http://localhost:8025. No los reenvía a nadie.
 - `pgadmin`: administrador de la base desde el navegador. Viene con la conexión a `db` ya
   configurada (`docker/pgadmin-servers.json`) y en modo escritorio, sin pantalla de login.
 
@@ -252,6 +349,11 @@ flowchart LR
 | `test_incidencias.py` | Revisión de recepción: daño, destrucción, extravío y listado de incidencias | Sí |
 | `test_historial.py` | Historial de lecturas del socio | Sí |
 | `test_api.py` | Endpoints, códigos HTTP, paginación y CORS | Sí |
+| `test_cuentas.py` | Registro, confirmación de email, aprobación, ingreso, tokens, correos | Sí |
+| `test_permisos.py` | Qué puede hacer cada rol y sin sesión (401/403) | Sí |
+| `test_pedidos.py` | Pedidos del socio: validaciones, reservar, traer de otra sede, rechazar | Sí |
+| `test_notificaciones.py` | Patrón Observer: cada evento llega a quien corresponde, por cada canal | Sí |
+| `test_inventario.py` | Recuento: encontrados, faltantes, fuera de lugar, desconocidos, cierre | Sí |
 
 Cada test corre dentro de una transacción que se revierte al terminar (`tests/conftest.py`), así
 los tests no dependen entre sí ni del orden en que se ejecutan. GitHub Actions corre la suite y
@@ -264,14 +366,17 @@ frontend/src/
   api/          una función por endpoint, agrupadas por recurso
   componentes/  etiquetas de estado, selectores con búsqueda, encabezados
   hooks/        useListado, useCarga, useAccion
-  layouts/      panel del personal y consulta pública
-  paginas/      una pantalla por sección
-  utiles/       textos y colores de los estados, formatos
+  layouts/      panel del administrador y sitio público / área del socio
+  paginas/      una pantalla por sección (panel, publico, socio, compartido)
+  sesion/       usuario conectado, guarda de rutas por rol
+  utiles/       textos y colores de los estados, formatos, reglas de validación
 ```
 
-- **Dos áreas**: el panel del personal (`/`) y la consulta para socios (`/consulta`), sin login.
-  La consulta busca al socio por DNI exacto y muestra solo sus préstamos en curso y reservas
-  activas.
+- **Tres áreas**: el catálogo público (`/`, sin login, más `/ingresar`, `/registro` y
+  `/confirmar`), el área del socio (`/socio`) y el panel del administrador (`/panel`).
+  `RutaProtegida` manda a ingresar a quien no tiene sesión y a su propia área a quien tiene
+  otro rol. Es solo comodidad: la protección real está en la API.
+- **Notificaciones**: una campana con la cantidad sin leer, que se consulta cada 30 segundos.
 - **Llamadas a la API**: centralizadas en `src/api/`. Un interceptor de axios convierte los
   errores en un `Error` con el mensaje del backend, que las pantallas muestran tal cual. Las
   reglas de negocio no se duplican en el front.

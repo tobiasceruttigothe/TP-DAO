@@ -104,6 +104,8 @@ se retiró a tiempo y un préstamo que acumula demasiado atraso. Las resuelve
 1. Vence las reservas listas para retirar cuyo plazo pasó, y ofrece el ejemplar a la siguiente.
 2. Inhabilita a los socios con algún préstamo vencido hace más de `DIAS_ATRASO_INHABILITACION`
    días (30 por defecto).
+3. Avisa a los socios: una vez cuando faltan `DIAS_AVISO_VENCIMIENTO` días o menos (2 por
+   defecto) y otra cuando el préstamo ya venció. Cada aviso sale una sola vez por préstamo.
 
 La API lo ejecuta sola al arrancar y después cada `INTERVALO_PROCESO_MINUTOS` (60 por defecto).
 También se puede correr en el momento con `POST /procesos/vencimientos` o con el botón
@@ -221,15 +223,83 @@ La consigna pide al menos cuatro reportes no triviales. Se implementaron los sei
 | `GET /reportes/envios?desde=&hasta=` | Recibidos sin problemas, con daño, destruidos, extraviados, cancelados, en curso; tasa de éxito e incidencias | Clasifica remitos por resultado; los cancelados no cuentan para la tasa porque no viajaron |
 | `GET /reportes/movimientos-sedes?desde=&hasta=` | Por par origen-destino: envíos, recibidos, incidencias y tiempo promedio de tránsito | Agrupa por ruta y promedia `fecha_recepcion - fecha_despacho` |
 
+## Usuarios, roles y pedidos
+
+Además de lo que pide la consigna, el sistema distingue tres tipos de acceso. El detalle técnico
+está en [arquitectura.md](arquitectura.md#seguridad).
+
+| Quién | Qué ve |
+|---|---|
+| Cualquier persona, sin cuenta | El catálogo y en qué sedes hay ejemplares libres |
+| Socio con cuenta | Sus préstamos, reservas, pedidos, historial de lectura y notificaciones; puede pedir libros |
+| Administrador | Todo el panel de gestión |
+
+### Alta de un socio
+
+1. La persona se registra en `/registro` con DNI, nombre, apellido, email, teléfono opcional y
+   contraseña (al menos 8 caracteres, con letras y números).
+2. Le llega un correo con un enlace para confirmar el email. Hasta confirmarlo no puede
+   ingresar; desde la pantalla de ingreso puede pedir que se lo reenvíen.
+3. Al confirmar, los administradores reciben un aviso. La cuenta queda **esperando aprobación**
+   y el socio, inhabilitado.
+4. Un administrador la aprueba (el socio queda habilitado) o la rechaza con un motivo. En ambos
+   casos al socio le llega un correo.
+
+Reglas:
+
+- Un email tiene una sola cuenta, y un DNI también.
+- Si el DNI ya corresponde a un socio cargado por la biblioteca, el email tiene que coincidir con
+  el registrado; en ese caso la cuenta se vincula a ese socio y no necesita aprobación.
+- Los administradores no se registran: el primero se crea al arrancar con los datos de la
+  configuración (`ADMIN_EMAIL`, `ADMIN_CONTRASENA`) y los demás los crea un administrador.
+
+### Pedidos
+
+El socio no reserva directamente: hace un **pedido** desde el catálogo eligiendo la sede donde
+quiere retirar el libro. El pedido le llega al administrador, que decide cómo atenderlo:
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDIENTE: el socio pide
+    PENDIENTE --> APROBADO: reservar en la sede pedida
+    PENDIENTE --> APROBADO: traer desde otra sede
+    PENDIENTE --> RECHAZADO: con motivo
+    PENDIENTE --> CANCELADO: el socio lo cancela
+    APROBADO --> [*]
+    RECHAZADO --> [*]
+    CANCELADO --> [*]
+```
+
+| Decisión | Qué hace el sistema |
+|---|---|
+| Reservar | Crea una reserva en la sede pedida. Si hay un ejemplar libre queda apartado; si no, el socio entra en la lista de espera |
+| Traer desde otra sede | Crea un préstamo interbibliotecario desde la sede elegida hasta la del pedido, con su remito |
+| Rechazar | Guarda el motivo, que le llega al socio |
+
+Reglas al pedir:
+
+- El socio tiene que estar habilitado y la sede, activa.
+- El libro tiene que tener al menos un ejemplar en circulación en la red (no dado de baja ni
+  extraviado, en una sede activa).
+- No puede tener otro pedido pendiente ni una reserva activa del mismo libro.
+
+Reglas al resolver: solo se resuelven pedidos pendientes; para traerlo de otra sede, esa sede
+tiene que ser distinta a la del pedido y tener un ejemplar disponible. Además valen todas las
+reglas de reservas y préstamos (por ejemplo, el límite de préstamos activos).
+
+- Lógica: `PedidoService` (`app/services/pedido_service.py`)
+- Tests: `tests/test_pedidos.py`
+
 ## Procesos opcionales
 
-De los cinco opcionales de la consigna se implementaron dos.
+De los cinco opcionales de la consigna se implementaron cuatro.
 
 ### Historial de lecturas
 
-`GET /socios/{id}/historial` devuelve los préstamos ya devueltos del socio, del más reciente al
-más antiguo, con título, autor, tipo de préstamo, sede donde lo retiró, fechas, días de atraso y
-multa. Está paginado.
+El socio lo ve en **Historial de lectura** (`GET /mi/historial`); el administrador, en la ficha
+de cada socio (`GET /socios/{id}/historial`). Devuelve los préstamos ya devueltos, del más
+reciente al más antiguo, con título, autor, tipo de préstamo, sede donde lo retiró, fechas,
+días de atraso y multa. Está paginado.
 
 - Lógica: `PrestamoService.historial_de_socio` y `PrestamoRepository.historial_de_socio`
 - No requirió cambios en el modelo: el historial son los préstamos en estado DEVUELTO.
@@ -253,7 +323,53 @@ destrucción.
 - Lógica: `RemitoService.recibir` y `RemitoService.marcar_extraviado`
 - Tests: `tests/test_incidencias.py`
 
-### No implementados
+### Envío de notificaciones
 
-Envío de notificaciones, recomendaciones e inventario con códigos (aunque cada ejemplar ya tiene
-un código de inventario único, no hay un proceso de inventario propiamente dicho).
+Cada aviso aparece en la campana del sistema y, si el usuario recibe correos, también le llega
+por mail. Se implementó con el patrón Observer; la lista completa de avisos y cómo se envían
+está en [patrones-de-diseno.md](patrones-de-diseno.md#observer-notificaciones).
+
+| Para el socio | Para los administradores |
+|---|---|
+| Cuenta aprobada o rechazada | Nuevo socio para aprobar |
+| Pedido aprobado (cómo se resolvió) o rechazado (motivo) | Nuevo pedido de un socio |
+| Reserva lista para retirar | |
+| El libro llegó a la sede (remito de ida recibido) | |
+| El préstamo vence pronto / ya venció | |
+| Quedó inhabilitado (con el motivo) | |
+
+- Cada notificación se puede marcar como leída; la campana muestra cuántas quedan sin leer.
+- Lógica: `app/services/eventos.py`, `app/services/notificaciones.py`, `NotificacionService`
+- Tests: `tests/test_notificaciones.py`, `tests/test_cuentas.py`
+
+### Inventario con códigos
+
+Es el **recuento físico** de los estantes de una sede: se recorren los estantes leyendo el
+código de cada ejemplar (con un lector de código de barras o a mano) y el sistema lo compara con
+lo que debería estar ahí.
+
+1. Un administrador **inicia** el inventario de una sede (uno en curso por sede a la vez).
+2. Lee los códigos. Cada lectura responde en el momento:
+   - **Encontrado**: el ejemplar es de esa sede y debería estar en el estante.
+   - **Fuera de lugar**: existe pero no debería estar ahí (es de otra sede, figura prestado, en
+     tránsito, extraviado o dado de baja).
+   - **Desconocido**: el código no corresponde a ningún ejemplar.
+   Un código repetido se avisa y no se cuenta dos veces; una lectura equivocada se puede deshacer.
+3. Mientras está en curso, el informe se calcula en vivo y agrega los **faltantes**: ejemplares
+   que deberían estar en el estante (disponibles, reservados o en reparación) y no se leyeron.
+4. Al **cerrar**, el informe queda guardado como estaba en ese momento y no se aceptan más
+   lecturas.
+
+Con el informe se puede actuar: un faltante se marca como **extraviado** (deja de figurar como
+disponible) y un ejemplar extraviado que apareció se marca como **recuperado** (vuelve a
+circular y, si había reservas en espera, se le asigna a la primera).
+
+Para leer con lector, la pantalla **Etiquetas** genera los códigos de barras (CODE128) de los
+ejemplares filtrando por sede, libro o estado, listos para imprimir y pegar.
+
+- Lógica: `InventarioService`, `CatalogoService.marcar_extraviado` y `recuperar`
+- Tests: `tests/test_inventario.py`
+
+### No implementado
+
+Recomendaciones de lectura.
