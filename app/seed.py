@@ -6,6 +6,7 @@ las mismas reglas que la API. Las fechas se calculan hacia atras desde hoy.
 """
 from datetime import date, datetime, time, timedelta
 
+from app.config import settings
 from app.database import SessionLocal
 from app.domain.enums import EstadoFisico
 from app.models import Remito
@@ -15,7 +16,16 @@ from app.schemas.prestamo import DevolucionCrear, PrestamoCrear
 from app.schemas.reserva import ReservaCrear
 from app.schemas.sede import SedeCrear
 from app.schemas.socio import SocioCrear
+from app.domain.enums import EstadoUsuario, Rol
+from app.models import Usuario
+from app.repositories import InventarioRepository
+from app.schemas.pedido import PedidoCrear
+from app.schemas.usuario import RegistroCrear
+from app.seguridad import contrasenas
 from app.services.catalogo_service import CatalogoService
+from app.services.cuenta_service import CuentaService
+from app.services.inventario_service import InventarioService
+from app.services.pedido_service import PedidoService
 from app.services.prestamo_service import PrestamoService
 from app.services.proceso_service import ProcesoVencimientos
 from app.services.remito_service import RemitoService
@@ -35,15 +45,15 @@ SEDES = [
 ]
 
 SOCIOS = [
-    SocioCrear(dni="38111222", nombre="Lucía", apellido="Fernández", email="lucia.fernandez@mail.com", telefono="3515550001"),
-    SocioCrear(dni="40222333", nombre="Martín", apellido="Gómez", email="martin.gomez@mail.com", telefono="3515550002"),
-    SocioCrear(dni="35333444", nombre="Sofia", apellido="Ramírez", email="sofia.ramirez@mail.com"),
-    SocioCrear(dni="42444555", nombre="Joaquín", apellido="Díaz", email="joaquin.diaz@mail.com"),
-    SocioCrear(dni="33555666", nombre="Valentina", apellido="López", email="valentina.lopez@mail.com", telefono="3515550005"),
-    SocioCrear(dni="39666777", nombre="Tomás", apellido="Martínez", email="tomas.martinez@mail.com"),
-    SocioCrear(dni="41777888", nombre="Camila", apellido="Sosa", email="camila.sosa@mail.com"),
-    SocioCrear(dni="36888999", nombre="Nicolás", apellido="Romero", email="nicolas.romero@mail.com"),
-    SocioCrear(dni="37999000", nombre="Diego", apellido="Acosta", email="diego.acosta@mail.com"),
+    SocioCrear(dni="38111222", nombre="Lucía", apellido="Fernández", email="lucia.fernandez@example.com", telefono="3515550001"),
+    SocioCrear(dni="40222333", nombre="Martín", apellido="Gómez", email="martin.gomez@example.com", telefono="3515550002"),
+    SocioCrear(dni="35333444", nombre="Sofia", apellido="Ramírez", email="sofia.ramirez@example.com"),
+    SocioCrear(dni="42444555", nombre="Joaquín", apellido="Díaz", email="joaquin.diaz@example.com"),
+    SocioCrear(dni="33555666", nombre="Valentina", apellido="López", email="valentina.lopez@example.com", telefono="3515550005"),
+    SocioCrear(dni="39666777", nombre="Tomás", apellido="Martínez", email="tomas.martinez@example.com"),
+    SocioCrear(dni="41777888", nombre="Camila", apellido="Sosa", email="camila.sosa@example.com"),
+    SocioCrear(dni="36888999", nombre="Nicolás", apellido="Romero", email="nicolas.romero@example.com"),
+    SocioCrear(dni="37999000", nombre="Diego", apellido="Acosta", email="diego.acosta@example.com"),
 ]
 
 LIBROS = [
@@ -58,6 +68,9 @@ LIBROS = [
     LibroCrear(isbn="9789500433860", titulo="Facundo", autor="Domingo F. Sarmiento", editorial="Emece", anio_publicacion=1845, genero="Ensayo"),
     LibroCrear(isbn="9789871136650", titulo="Don Segundo Sombra", autor="Ricardo Güiraldes", editorial="Losada", anio_publicacion=1926, genero="Novela"),
 ]
+
+# Contrasena de todos los socios de ejemplo
+CONTRASENA_SOCIOS = "socio123"
 
 # Copias por sede de cada libro
 COPIAS = {"CEN": 2, "NOR": 1, "SUR": 1}
@@ -215,6 +228,69 @@ class CargaDeEjemplo:
         self.remitos.cancelar(p.remitos[0].id, "El socio ya no lo necesita")
         self._fechar(p.remitos[0], momento(3, 10))
 
+    def cuentas(self):
+        """Cada socio de ejemplo tiene su cuenta ya confirmada y aprobada. Sus emails son
+        inventados (example.com), asi que no se les manda ningun correo."""
+        hash_comun = contrasenas.generar_hash(CONTRASENA_SOCIOS)
+        for socio in self.socios:
+            self.db.add(
+                Usuario(
+                    email=socio.email,
+                    nombre=f"{socio.nombre} {socio.apellido}",
+                    hash_contrasena=hash_comun,
+                    rol=Rol.SOCIO,
+                    estado=EstadoUsuario.ACTIVO,
+                    socio=socio,
+                    recibe_correos=False,
+                )
+            )
+        self.db.commit()
+
+        # Una persona que se registro sola, confirmo su email y espera que la aprueben
+        cuentas = CuentaService(self.db)
+        pendiente = cuentas.registrar(
+            RegistroCrear(
+                dni="43111222",
+                nombre="Florencia",
+                apellido="Ruiz",
+                email="florencia.ruiz@example.com",
+                contrasena=CONTRASENA_SOCIOS,
+            )
+        )
+        pendiente.recibe_correos = False
+        cuentas.confirmar_email(pendiente.token_confirmacion)
+
+    def pedidos(self):
+        lucia, martin, sofia, camila = self.socios[0], self.socios[1], self.socios[2], self.socios[6]
+        libros = self.libros
+        servicio = PedidoService(self.db)
+
+        def pedir(socio, libro, sede, comentario=None):
+            return servicio.crear(socio, PedidoCrear(libro_id=libro.id, sede_id=self.sedes[sede].id, comentario=comentario))
+
+        # Pendientes, para que el administrador los resuelva
+        pedir(sofia, libros[8], "SUR", "Lo necesito para un trabajo de la facultad")
+        pedir(martin, libros[9], "NOR")
+        # Ya resueltos
+        servicio.reservar(pedir(lucia, libros[7], "SUR").id)
+        servicio.rechazar(
+            pedir(camila, libros[4], "CEN").id,
+            "El ejemplar está en restauración; volvé a pedirlo la semana próxima",
+        )
+
+    def inventario(self):
+        """Un recuento ya cerrado en Sede Sur, con un faltante, un ejemplar de otra sede y un
+        codigo desconocido, para que el informe tenga de todo."""
+        sur = self.sedes["SUR"]
+        servicio = InventarioService(self.db)
+        inventario = servicio.iniciar(sur.id, "Recuento mensual")
+        en_estante = InventarioRepository(self.db).esperados_en_sede(sur.id)
+        for ejemplar in en_estante[1:]:  # el primero "no aparece"
+            servicio.registrar_codigo(inventario.id, ejemplar.codigo_inventario)
+        servicio.registrar_codigo(inventario.id, "NOR-0003")
+        servicio.registrar_codigo(inventario.id, "SUR-9999")
+        servicio.cerrar(inventario.id)
+
     def reservas(self):
         servicio = ReservaService(self.db)
         joaquin, nicolas = self.socios[3], self.socios[7]
@@ -234,19 +310,27 @@ class CargaDeEjemplo:
 
 def cargar():
     db = SessionLocal()
+    # Mientras se cargan los datos de ejemplo no se manda ningun correo
+    db.info["sin_correo"] = True
     try:
+        CuentaService(db).asegurar_admin()
         if SedeRepository(db).listar():
             print("La base ya tiene datos, no se carga nada.")
             return
         carga = CargaDeEjemplo(db)
         carga.maestros()
+        carga.cuentas()
         carga.historial()
         carga.en_curso()
         carga.reservas()
         carga.estados_finales()
+        carga.pedidos()
+        carga.inventario()
         print(
             f"Cargados {len(SEDES)} sedes, {len(SOCIOS)} socios, {len(LIBROS)} libros, "
-            f"prestamos, envios, incidencias y reservas de ejemplo."
+            f"prestamos, envios, incidencias, reservas, pedidos e inventario de ejemplo.\n"
+            f"Administrador: {settings.admin_email} / {settings.admin_contrasena}\n"
+            f"Socios: su email (por ejemplo {SOCIOS[0].email}) / {CONTRASENA_SOCIOS}"
         )
     finally:
         db.close()
