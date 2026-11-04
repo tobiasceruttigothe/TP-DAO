@@ -3,14 +3,14 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.repositories.base import Paginacion
-from app.routers.dependencias import paginacion
+from app.routers.dependencias import SOLO_ADMIN, paginacion
 from app.schemas.paginacion import Pagina
 from app.schemas.prestamo import LecturaRespuesta
 from app.schemas.socio import SocioActualizar, SocioCrear, SocioInhabilitar, SocioRespuesta
 from app.services.prestamo_service import PrestamoService
 from app.services.socio_service import SocioService
 
-router = APIRouter(prefix="/socios", tags=["Socios"])
+router = APIRouter(prefix="/socios", tags=["Socios"], dependencies=SOLO_ADMIN)
 
 
 def get_service(db: Session = Depends(get_db)) -> SocioService:

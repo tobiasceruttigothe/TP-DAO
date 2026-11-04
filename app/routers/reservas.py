@@ -3,13 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.repositories.base import Paginacion
-from app.routers.dependencias import paginacion
+from app.routers.dependencias import SOLO_ADMIN, paginacion
 from app.domain.enums import EstadoReserva
 from app.schemas.paginacion import Pagina
 from app.schemas.reserva import ReservaCrear, ReservaRespuesta
 from app.services.reserva_service import ReservaService
 
-router = APIRouter(prefix="/reservas", tags=["Reservas"])
+router = APIRouter(prefix="/reservas", tags=["Reservas"], dependencies=SOLO_ADMIN)
 
 
 def get_service(db: Session = Depends(get_db)) -> ReservaService:
