@@ -14,7 +14,8 @@ export default function useAccion() {
     try {
       const resultado = await operacion()
       if (mensajeExito) message.success(mensajeExito)
-      return resultado ?? true
+      // Una respuesta sin cuerpo (204) llega como '': igual cuenta como exito
+      return resultado || true
     } catch (error) {
       message.error(error.message)
       return false

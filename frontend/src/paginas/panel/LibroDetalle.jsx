@@ -56,8 +56,8 @@ export default function LibroDetalle() {
     <>
       <Encabezado titulo={datosLibro?.titulo ?? 'Libro'} descripcion={datosLibro?.autor}>
         <Button onClick={() => setEditando(datosLibro)}>Editar</Button>
-        <Button onClick={() => navegar(`/reservas?libro=${libroId}`)}>Reservar</Button>
-        <Button type="primary" onClick={() => navegar(`/prestamos/nuevo?libro=${libroId}`)}>
+        <Button onClick={() => navegar(`/panel/reservas?libro=${libroId}`)}>Reservar</Button>
+        <Button type="primary" onClick={() => navegar(`/panel/prestamos/nuevo?libro=${libroId}`)}>
           Prestar
         </Button>
       </Encabezado>
@@ -128,6 +128,18 @@ export default function LibroDetalle() {
                     <a onClick={() => accion(() => ejemplaresApi.marcarReparado(e.id), 'Ejemplar disponible nuevamente')}>
                       Marcar reparado
                     </a>
+                  )}
+                  {['DISPONIBLE', 'EN_REPARACION'].includes(e.estado) && (
+                    <Popconfirm
+                      title="¿Marcar el ejemplar como extraviado?"
+                      description="Deja de figurar como disponible hasta que aparezca."
+                      onConfirm={() => accion(() => ejemplaresApi.marcarExtraviado(e.id), 'Ejemplar marcado como extraviado')}
+                    >
+                      <a>Extraviado</a>
+                    </Popconfirm>
+                  )}
+                  {e.estado === 'EXTRAVIADO' && (
+                    <a onClick={() => accion(() => ejemplaresApi.marcarRecuperado(e.id), 'Ejemplar recuperado')}>Apareció</a>
                   )}
                   {['DISPONIBLE', 'EN_REPARACION'].includes(e.estado) && (
                     <Popconfirm

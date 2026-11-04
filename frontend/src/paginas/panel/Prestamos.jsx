@@ -121,7 +121,7 @@ function RemitosDelPrestamo({ prestamo, onCerrar }) {
         dataSource={remitos}
         locale={{ emptyText: 'Sin remitos' }}
         renderItem={(r) => (
-          <List.Item actions={[<a key="ver" onClick={() => navegar(`/remitos/${r.id}`)}>Ver</a>]}>
+          <List.Item actions={[<a key="ver" onClick={() => navegar(`/panel/remitos/${r.id}`)}>Ver</a>]}>
             <Space>
               <b>{r.numero}</b>
               <EstadoTag tipo="tipoRemito" valor={r.tipo} />
@@ -153,7 +153,7 @@ export default function Prestamos() {
           options={opcionesDe('prestamo')}
           onChange={(estado) => setFiltros((f) => ({ ...f, estado }))}
         />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navegar('/prestamos/nuevo')}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navegar('/panel/prestamos/nuevo')}>
           Nuevo préstamo
         </Button>
       </Encabezado>

@@ -50,6 +50,26 @@ export const ESTADOS = {
     DESTRUCCION: { texto: 'Destrucción', color: 'red' },
     EXTRAVIO: { texto: 'Extravío', color: 'volcano' },
   },
+  pedido: {
+    PENDIENTE: { texto: 'Pendiente', color: 'gold' },
+    APROBADO: { texto: 'Aprobado', color: 'green' },
+    RECHAZADO: { texto: 'Rechazado', color: 'red' },
+    CANCELADO: { texto: 'Cancelado', color: 'default' },
+  },
+  usuario: {
+    PENDIENTE_CONFIRMACION: { texto: 'Sin confirmar email', color: 'default' },
+    PENDIENTE_APROBACION: { texto: 'Esperando aprobación', color: 'gold' },
+    ACTIVO: { texto: 'Activa', color: 'green' },
+    RECHAZADO: { texto: 'Rechazada', color: 'red' },
+  },
+  rol: {
+    ADMIN: { texto: 'Administrador', color: 'geekblue' },
+    SOCIO: { texto: 'Socio', color: 'default' },
+  },
+  inventario: {
+    EN_CURSO: { texto: 'En curso', color: 'processing' },
+    CERRADO: { texto: 'Cerrado', color: 'default' },
+  },
 }
 
 export function opcionesDe(tipo) {

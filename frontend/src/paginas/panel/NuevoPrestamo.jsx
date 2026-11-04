@@ -55,7 +55,7 @@ export default function NuevoPrestamo() {
         ? 'Préstamo solicitado. Se generó el remito de envío.'
         : 'Préstamo registrado. El socio ya puede retirar el ejemplar.',
     )
-    if (prestamo) navegar('/prestamos')
+    if (prestamo) navegar('/panel/prestamos')
   }
 
   return (
@@ -92,7 +92,7 @@ export default function NuevoPrestamo() {
               showIcon
               style={{ marginBottom: 16 }}
               message="No hay ejemplares libres de este libro."
-              description={<a onClick={() => navegar(`/reservas?libro=${libroId}`)}>Registrar una reserva</a>}
+              description={<a onClick={() => navegar(`/panel/reservas?libro=${libroId}`)}>Registrar una reserva</a>}
             />
           )}
 

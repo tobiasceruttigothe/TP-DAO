@@ -30,7 +30,7 @@ export default function Libros() {
         pagination={paginacion}
         scroll={{ x: true }}
         columns={[
-          { title: 'Título', dataIndex: 'titulo', render: (t, l) => <a onClick={() => navegar(`/libros/${l.id}`)}>{t}</a> },
+          { title: 'Título', dataIndex: 'titulo', render: (t, l) => <a onClick={() => navegar(`/panel/libros/${l.id}`)}>{t}</a> },
           { title: 'Autor', dataIndex: 'autor' },
           { title: 'ISBN', dataIndex: 'isbn' },
           { title: 'Editorial', dataIndex: 'editorial' },
@@ -41,7 +41,7 @@ export default function Libros() {
             key: 'acciones',
             render: (_, libro) => (
               <Space>
-                <a onClick={() => navegar(`/libros/${libro.id}`)}>Ejemplares</a>
+                <a onClick={() => navegar(`/panel/libros/${libro.id}`)}>Ejemplares</a>
                 <a onClick={() => setEdicion(libro)}>Editar</a>
               </Space>
             ),

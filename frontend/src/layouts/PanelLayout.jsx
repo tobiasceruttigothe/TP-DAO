@@ -1,34 +1,45 @@
 import { Suspense, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Button, Layout, Menu, Spin, Typography } from 'antd'
+import { Button, Flex, Layout, Menu, Spin, Typography } from 'antd'
 import {
   AlertOutlined,
+  AuditOutlined,
   BarChartOutlined,
+  BarcodeOutlined,
   BookOutlined,
   CarOutlined,
   ClockCircleOutlined,
+  GlobalOutlined,
   HomeOutlined,
-  SearchOutlined,
+  InboxOutlined,
   ShopOutlined,
   SwapOutlined,
   TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
+import CampanaNotificaciones from '../componentes/CampanaNotificaciones'
+import MenuUsuario from '../componentes/MenuUsuario'
 
 const SECCIONES = [
-  { key: '/', icon: <HomeOutlined />, label: 'Inicio' },
-  { key: '/prestamos', icon: <SwapOutlined />, label: 'Préstamos' },
-  { key: '/remitos', icon: <CarOutlined />, label: 'Remitos' },
-  { key: '/reservas', icon: <ClockCircleOutlined />, label: 'Reservas' },
-  { key: '/libros', icon: <BookOutlined />, label: 'Catálogo' },
-  { key: '/socios', icon: <TeamOutlined />, label: 'Socios' },
-  { key: '/sedes', icon: <ShopOutlined />, label: 'Sedes' },
-  { key: '/incidencias', icon: <AlertOutlined />, label: 'Incidencias' },
-  { key: '/reportes', icon: <BarChartOutlined />, label: 'Reportes' },
+  { key: '/panel', icon: <HomeOutlined />, label: 'Inicio' },
+  { key: '/panel/pedidos', icon: <InboxOutlined />, label: 'Pedidos' },
+  { key: '/panel/prestamos', icon: <SwapOutlined />, label: 'Préstamos' },
+  { key: '/panel/remitos', icon: <CarOutlined />, label: 'Remitos' },
+  { key: '/panel/reservas', icon: <ClockCircleOutlined />, label: 'Reservas' },
+  { key: '/panel/libros', icon: <BookOutlined />, label: 'Catálogo' },
+  { key: '/panel/inventarios', icon: <AuditOutlined />, label: 'Inventario' },
+  { key: '/panel/etiquetas', icon: <BarcodeOutlined />, label: 'Etiquetas' },
+  { key: '/panel/socios', icon: <TeamOutlined />, label: 'Socios' },
+  { key: '/panel/usuarios', icon: <UserOutlined />, label: 'Usuarios' },
+  { key: '/panel/sedes', icon: <ShopOutlined />, label: 'Sedes' },
+  { key: '/panel/incidencias', icon: <AlertOutlined />, label: 'Incidencias' },
+  { key: '/panel/reportes', icon: <BarChartOutlined />, label: 'Reportes' },
 ]
 
 function seccionActual(ruta) {
-  if (ruta === '/') return '/'
-  return SECCIONES.find((s) => s.key !== '/' && ruta.startsWith(s.key))?.key ?? '/'
+  const coincidencias = SECCIONES.filter((s) => ruta === s.key || ruta.startsWith(`${s.key}/`))
+  // La mas especifica gana: /panel/pedidos antes que /panel
+  return coincidencias.sort((a, b) => b.key.length - a.key.length)[0]?.key ?? '/panel'
 }
 
 export default function PanelLayout() {
@@ -48,9 +59,13 @@ export default function PanelLayout() {
         <Layout.Header
           style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}
         >
-          <Button icon={<SearchOutlined />} onClick={() => navegar('/consulta')}>
-            Consulta para socios
-          </Button>
+          <Flex gap={8} align="center">
+            <Button icon={<GlobalOutlined />} onClick={() => navegar('/')}>
+              Sitio público
+            </Button>
+            <CampanaNotificaciones verTodas="/panel/notificaciones" />
+            <MenuUsuario />
+          </Flex>
         </Layout.Header>
         <Layout.Content style={{ margin: 24 }}>
           <Suspense fallback={<Spin style={{ display: 'block', marginTop: 80 }} />}>
