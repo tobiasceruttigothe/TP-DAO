@@ -121,3 +121,16 @@ def test_notificaciones_por_api(socio_conectado, db):
     assert cliente.post(f"/notificaciones/{notificacion['id']}/leida").json()["leida"] is True
     assert cliente.get("/notificaciones/no-leidas").json() == {"no_leidas": 0}
     assert cliente.post("/notificaciones/leer-todas").json() == {"no_leidas": 0}
+
+
+def test_no_se_puede_marcar_la_notificacion_de_otro(socio_conectado, db, datos):
+    cliente, _ = socio_conectado
+    otro = datos.socio()
+    datos.usuario_de(otro)
+    SocioService(db).inhabilitar(otro.id, "deuda")
+    ajena = db.query(Notificacion).filter_by(usuario_id=otro.usuario.id).one()
+
+    assert cliente.post(f"/notificaciones/{ajena.id}/leida").status_code == 404
+    assert cliente.get("/notificaciones").json()["total"] == 0
+    db.refresh(ajena)
+    assert ajena.leida is False
