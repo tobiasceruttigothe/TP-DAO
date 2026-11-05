@@ -9,6 +9,7 @@ from app.models import Socio
 from app.repositories import PrestamoRepository, SocioRepository
 from app.repositories.base import Paginacion, ResultadoPaginado
 from app.schemas.socio import SocioActualizar, SocioCrear
+from app.services.eventos import SocioInhabilitado, publicador
 
 
 class SocioService:
@@ -50,6 +51,7 @@ class SocioService:
     def inhabilitar(self, socio_id: int, motivo: str) -> Socio:
         socio = self.obtener(socio_id)
         socio.inhabilitar(motivo)
+        publicador(self.db).publicar(SocioInhabilitado(socio))
         self.db.commit()
         return socio
 
@@ -74,6 +76,7 @@ class SocioService:
             socio.inhabilitar(
                 f"Préstamo N° {prestamo.id} ({titulo}) vencido hace {prestamo.dias_atraso(hoy)} días sin devolver"
             )
+            publicador(self.db).publicar(SocioInhabilitado(socio))
             inhabilitados.append(socio)
         self.db.flush()
         return inhabilitados

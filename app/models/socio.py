@@ -21,6 +21,7 @@ class Socio(Base):
 
     prestamos = relationship("Prestamo", back_populates="socio")
     reservas = relationship("Reserva", back_populates="socio")
+    usuario = relationship("Usuario", back_populates="socio", uselist=False)
 
     def inhabilitar(self, motivo: str):
         self.habilitado = False

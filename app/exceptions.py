@@ -20,3 +20,11 @@ class ReglaNegocioError(BibliotecaError):
 
 class TransicionInvalidaError(ReglaNegocioError):
     pass
+
+
+class NoAutorizadoError(BibliotecaError):
+    """Falta iniciar sesion, o las credenciales no son validas (401)."""
+
+
+class SinPermisoError(BibliotecaError):
+    """La sesion es valida pero el usuario no puede hacer esto (403)."""

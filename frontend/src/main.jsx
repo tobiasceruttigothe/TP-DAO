@@ -6,6 +6,7 @@ import esES from 'antd/locale/es_ES'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 import App from './App'
+import { ProveedorSesion } from './sesion/ProveedorSesion'
 import './estilos.css'
 
 dayjs.locale('es')
@@ -15,7 +16,9 @@ createRoot(document.getElementById('root')).render(
     <ConfigProvider locale={esES} theme={{ token: { colorPrimary: '#1677ff', borderRadius: 6 } }}>
       <AntApp>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <App />
+          <ProveedorSesion>
+            <App />
+          </ProveedorSesion>
         </BrowserRouter>
       </AntApp>
     </ConfigProvider>

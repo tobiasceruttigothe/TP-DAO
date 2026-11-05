@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from sqlalchemy import JSON, Column, Date, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, Column, Date, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -26,6 +26,9 @@ class Prestamo(Base):
     multa = Column(Float, nullable=False, default=0.0)
     # Como se compuso la multa al devolver: [{"concepto": ..., "monto": ...}]
     detalle_multa = Column(JSON)
+    # Avisos ya enviados al socio, para no repetirlos en cada pasada del proceso
+    aviso_por_vencer = Column(Boolean, nullable=False, default=False)
+    aviso_vencido = Column(Boolean, nullable=False, default=False)
     observaciones = Column(String(300))
 
     socio = relationship("Socio", back_populates="prestamos")

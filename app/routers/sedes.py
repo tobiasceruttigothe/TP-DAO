@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.routers.dependencias import SOLO_ADMIN
 from app.schemas.sede import SedeActualizar, SedeCrear, SedeRespuesta
 from app.services.sede_service import SedeService
 
@@ -23,23 +24,23 @@ def obtener_sede(sede_id: int, service: SedeService = Depends(get_service)):
     return service.obtener(sede_id)
 
 
-@router.post("", response_model=SedeRespuesta, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SedeRespuesta, status_code=status.HTTP_201_CREATED, dependencies=SOLO_ADMIN)
 def crear_sede(datos: SedeCrear, service: SedeService = Depends(get_service)):
     """Alta de sede. El nombre no puede repetirse."""
     return service.crear(datos)
 
 
-@router.put("/{sede_id}", response_model=SedeRespuesta)
+@router.put("/{sede_id}", response_model=SedeRespuesta, dependencies=SOLO_ADMIN)
 def actualizar_sede(sede_id: int, datos: SedeActualizar, service: SedeService = Depends(get_service)):
     return service.actualizar(sede_id, datos)
 
 
-@router.patch("/{sede_id}/baja", response_model=SedeRespuesta)
+@router.patch("/{sede_id}/baja", response_model=SedeRespuesta, dependencies=SOLO_ADMIN)
 def dar_de_baja_sede(sede_id: int, service: SedeService = Depends(get_service)):
     """Una sede dada de baja no puede iniciar prestamos, reservas ni envios."""
     return service.dar_de_baja(sede_id)
 
 
-@router.patch("/{sede_id}/alta", response_model=SedeRespuesta)
+@router.patch("/{sede_id}/alta", response_model=SedeRespuesta, dependencies=SOLO_ADMIN)
 def dar_de_alta_sede(sede_id: int, service: SedeService = Depends(get_service)):
     return service.dar_de_alta(sede_id)

@@ -200,7 +200,7 @@ def test_busqueda_ignora_tildes_y_comodines(client):
 def test_proceso_de_vencimientos_por_api(client):
     r = client.post("/procesos/vencimientos")
     assert r.status_code == 200
-    assert r.json() == {"reservas_vencidas": 0, "socios_inhabilitados": []}
+    assert r.json() == {"reservas_vencidas": 0, "avisos_enviados": 0, "socios_inhabilitados": []}
 
 
 def test_prestamo_y_socio_informan_atraso(client):

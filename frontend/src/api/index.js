@@ -33,6 +33,8 @@ export const ejemplaresApi = {
   crear: (datos) => cliente.post('/ejemplares', datos),
   darDeBaja: (id) => cliente.patch(`/ejemplares/${id}/baja`),
   marcarReparado: (id) => cliente.patch(`/ejemplares/${id}/reparado`),
+  marcarExtraviado: (id) => cliente.patch(`/ejemplares/${id}/extraviado`),
+  marcarRecuperado: (id) => cliente.patch(`/ejemplares/${id}/recuperado`),
 }
 
 export const prestamosApi = {
@@ -74,4 +76,54 @@ export const reportesApi = {
   disponibilidadSedes: () => cliente.get('/reportes/disponibilidad-sedes'),
   envios: (params) => get('/reportes/envios', params),
   movimientosSedes: (params) => get('/reportes/movimientos-sedes', params),
+}
+
+export const cuentaApi = {
+  registrar: (datos) => cliente.post('/auth/registro', datos),
+  confirmar: (token) => cliente.post('/auth/confirmar', { token }),
+  reenviarConfirmacion: (email) => cliente.post('/auth/reenviar-confirmacion', { email }),
+  ingresar: (email, contrasena) => cliente.post('/auth/ingresar', { email, contrasena }),
+  yo: () => cliente.get('/auth/yo'),
+}
+
+// Area del socio conectado
+export const miApi = {
+  socio: () => cliente.get('/mi/socio'),
+  prestamos: (params) => get('/mi/prestamos', params),
+  reservas: (params) => get('/mi/reservas', params),
+  cancelarReserva: (id) => cliente.post(`/mi/reservas/${id}/cancelar`),
+  historial: (params) => get('/mi/historial', params),
+  pedidos: (params) => get('/mi/pedidos', params),
+  pedir: (datos) => cliente.post('/mi/pedidos', datos),
+  cancelarPedido: (id) => cliente.post(`/mi/pedidos/${id}/cancelar`),
+}
+
+export const notificacionesApi = {
+  listar: (params) => get('/notificaciones', params),
+  noLeidas: () => cliente.get('/notificaciones/no-leidas'),
+  marcarLeida: (id) => cliente.post(`/notificaciones/${id}/leida`),
+  leerTodas: () => cliente.post('/notificaciones/leer-todas'),
+}
+
+export const pedidosApi = {
+  listar: (params) => get('/pedidos', params),
+  reservar: (id) => cliente.post(`/pedidos/${id}/reservar`),
+  enviar: (id, sedeOrigenId) => cliente.post(`/pedidos/${id}/enviar`, { sede_origen_id: sedeOrigenId }),
+  rechazar: (id, motivo) => cliente.post(`/pedidos/${id}/rechazar`, { motivo }),
+}
+
+export const usuariosApi = {
+  listar: (params) => get('/usuarios', params),
+  aprobar: (id) => cliente.post(`/usuarios/${id}/aprobar`),
+  rechazar: (id, motivo) => cliente.post(`/usuarios/${id}/rechazar`, { motivo }),
+  crearAdministrador: (datos) => cliente.post('/usuarios/administradores', datos),
+}
+
+export const inventariosApi = {
+  listar: (params) => get('/inventarios', params),
+  iniciar: (datos) => cliente.post('/inventarios', datos),
+  obtener: (id) => cliente.get(`/inventarios/${id}`),
+  registrar: (id, codigo) => cliente.post(`/inventarios/${id}/codigos`, { codigo }),
+  quitar: (id, itemId) => cliente.delete(`/inventarios/${id}/codigos/${itemId}`),
+  cerrar: (id) => cliente.post(`/inventarios/${id}/cerrar`),
 }

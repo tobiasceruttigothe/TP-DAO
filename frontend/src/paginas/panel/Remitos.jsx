@@ -39,7 +39,7 @@ export default function Remitos() {
         dataSource={items}
         pagination={paginacion}
         scroll={{ x: true }}
-        onRow={(r) => ({ onClick: () => navegar(`/remitos/${r.id}`), style: { cursor: 'pointer' } })}
+        onRow={(r) => ({ onClick: () => navegar(`/panel/remitos/${r.id}`), style: { cursor: 'pointer' } })}
         columns={[
           { title: 'Número', dataIndex: 'numero', render: (n) => <a>{n}</a> },
           { title: 'Tipo', dataIndex: 'tipo', render: (v) => <EstadoTag tipo="tipoRemito" valor={v} /> },

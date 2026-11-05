@@ -41,7 +41,7 @@ export default function Incidencias() {
         columns={[
           { title: 'Fecha', dataIndex: 'fecha', render: fechaHora },
           { title: 'Tipo', dataIndex: 'tipo', render: (v) => <EstadoTag tipo="incidencia" valor={v} /> },
-          { title: 'Remito', render: (_, i) => <a onClick={() => navegar(`/remitos/${i.remito.id}`)}>{i.remito.numero}</a> },
+          { title: 'Remito', render: (_, i) => <a onClick={() => navegar(`/panel/remitos/${i.remito.id}`)}>{i.remito.numero}</a> },
           { title: 'Recorrido', render: (_, i) => <Ruta origen={i.remito.sede_origen} destino={i.remito.sede_destino} /> },
           { title: 'Descripción', dataIndex: 'descripcion', render: (d) => d ?? '-' },
         ]}

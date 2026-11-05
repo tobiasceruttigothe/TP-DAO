@@ -5,3 +5,39 @@ body {
 .fila-vencida td {
   background: #fff1f0 !important;
 }
+
+/* Etiquetas con codigo de barras: grilla en pantalla y lista para imprimir en hoja A4 */
+.etiquetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.etiqueta {
+  background: #fff;
+  border: 1px dashed #bfbfbf;
+  border-radius: 4px;
+  padding: 8px;
+  text-align: center;
+  break-inside: avoid;
+}
+
+.etiqueta svg {
+  max-width: 100%;
+}
+
+@media print {
+  .ant-layout-sider,
+  .ant-layout-header,
+  .no-imprimir {
+    display: none !important;
+  }
+
+  .ant-layout-content {
+    margin: 0 !important;
+  }
+
+  .etiquetas {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

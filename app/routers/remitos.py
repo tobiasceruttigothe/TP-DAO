@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.domain.enums import TipoIncidencia
 from app.repositories.base import Paginacion
-from app.routers.dependencias import paginacion
+from app.routers.dependencias import SOLO_ADMIN, paginacion
 from app.schemas.paginacion import Pagina
 from app.schemas.prestamo import (
     IncidenciaRespuesta,
@@ -17,8 +17,8 @@ from app.schemas.prestamo import (
 )
 from app.services.remito_service import RemitoService
 
-router = APIRouter(prefix="/remitos", tags=["Remitos"])
-incidencias_router = APIRouter(prefix="/incidencias", tags=["Remitos"])
+router = APIRouter(prefix="/remitos", tags=["Remitos"], dependencies=SOLO_ADMIN)
+incidencias_router = APIRouter(prefix="/incidencias", tags=["Remitos"], dependencies=SOLO_ADMIN)
 
 
 def get_service(db: Session = Depends(get_db)) -> RemitoService:

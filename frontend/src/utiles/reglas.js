@@ -72,6 +72,26 @@ export const reglasTexto = (campo, minimo, maximo) => [
   { max: maximo, message: `Máximo ${maximo} caracteres` },
 ]
 
+// Misma regla que Contrasena en validaciones.py
+export const reglasContrasena = [
+  { required: true, message: 'Ingresá una contraseña' },
+  {
+    validator: (_, valor) => {
+      if (!valor) return Promise.resolve()
+      if (valor.length < 8) return Promise.reject(new Error('Al menos 8 caracteres'))
+      if (new TextEncoder().encode(valor).length > 72) return Promise.reject(new Error('Máximo 72 caracteres'))
+      if (!/[A-Za-z]/.test(valor) || !/\d/.test(valor)) return Promise.reject(new Error('Debe tener letras y números'))
+      return Promise.resolve()
+    },
+  },
+]
+
+export const reglasEmail = [
+  { required: true, message: 'Ingresá el email' },
+  { type: 'email', message: 'No es un email válido' },
+  { max: 120, message: 'Máximo 120 caracteres' },
+]
+
 /**
  * Valida un formulario de Ant Design. Devuelve los valores, o null si hay errores
  * (los errores ya se muestran debajo de cada campo; no hace falta tratarlos aparte).

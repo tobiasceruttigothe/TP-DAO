@@ -14,7 +14,7 @@ git clone https://github.com/tobiasceruttigothe/TP-DAO.git
 cd TP-DAO
 docker compose up --build -d
 docker compose exec api python -m app.seed
-# abrir http://localhost:3000
+# abrir http://localhost:3000 (admin@example.com / admin123)
 ```
 
 ## 1. Descargar el repositorio
@@ -43,8 +43,8 @@ Qué hace:
 - `--build` construye las imágenes de la API y del frontend (la primera vez tarda unos minutos
   porque descarga Python, Node y las librerías; las siguientes es mucho más rápido).
 - `-d` lo deja corriendo en segundo plano y devuelve la consola.
-- Levanta cuatro contenedores: `db` (PostgreSQL), `api` (el backend), `web` (el frontend) y
-  `pgadmin` (para ver la base). La API espera a que la base esté lista y, al arrancar, crea o
+- Levanta cinco contenedores: `db` (PostgreSQL), `api` (el backend), `web` (el frontend),
+  `mailpit` (buzón de prueba para los correos) y `pgadmin` (para ver la base). La API espera a que la base esté lista y, al arrancar, crea o
   actualiza las tablas solas (migraciones).
 
 Verificar que estén corriendo:
@@ -53,7 +53,7 @@ Verificar que estén corriendo:
 docker compose ps
 ```
 
-Los cuatro servicios tienen que figurar como `running` (la base, además, `healthy`).
+Los cinco servicios tienen que figurar como `running` (la base, además, `healthy`).
 
 ## 3. Cargar datos de ejemplo
 
@@ -61,17 +61,23 @@ Los cuatro servicios tienen que figurar como `running` (la base, además, `healt
 docker compose exec api python -m app.seed
 ```
 
-Carga sedes, socios, libros, ejemplares y un escenario con préstamos, envíos, incidencias y
-reservas, para que todas las pantallas y reportes tengan algo que mostrar. Si la base ya tiene
-datos, no hace nada.
+Carga sedes, socios, libros, ejemplares y un escenario con préstamos, envíos, incidencias,
+reservas, pedidos y un inventario cerrado, para que todas las pantallas y reportes tengan algo
+que mostrar. Si la base ya tiene datos, no hace nada.
+
+Cada socio de ejemplo tiene su cuenta lista para usar, como si ya hubiera confirmado el email y
+lo hubieran aprobado. Sus emails son inventados (`@example.com`) y no se les manda ningún correo.
+Hay además una cuenta (Florencia Ruiz) esperando aprobación, para probar esa pantalla.
 
 ## 4. Probar que funciona
 
 | Qué | Dónde |
 |---|---|
-| **Sistema (panel del personal)** | http://localhost:3000 |
+| **Catálogo público** (sin login) | http://localhost:3000 |
+| Ingresar (administrador o socio) | http://localhost:3000/ingresar |
+| Panel del administrador | http://localhost:3000/panel |
+| **Mailpit** (los correos que manda el sistema) | http://localhost:8025 |
 | pgAdmin (ver la base de datos) | http://localhost:5050 |
-| Consulta para socios | http://localhost:3000/consulta |
 | Documentación interactiva de la API (Swagger) | http://localhost:8000/docs |
 | Documentación alternativa (ReDoc) | http://localhost:8000/redoc |
 | Chequeo rápido | http://localhost:8000/health → `{"status":"ok"}` |
@@ -79,9 +85,30 @@ datos, no hace nada.
 En Swagger se puede probar cada endpoint: abrir uno, **Try it out**, completar los datos y
 **Execute**. Por ejemplo, `GET /reportes/prestamos-activos`.
 
-Con los datos de ejemplo, en la consulta para socios se puede probar con el DNI `39666777`
-(tiene un préstamo vencido), `37999000` (inhabilitado por atraso) o `36888999` (tiene una
-reserva lista para retirar).
+### Usuarios para probar
+
+| Quién | Email | Contraseña |
+|---|---|---|
+| Administrador | `admin@example.com` | `admin123` |
+| Socia con historial y pedidos | `lucia.fernandez@example.com` | `socio123` |
+| Socio con un préstamo vencido | `tomas.martinez@example.com` | `socio123` |
+| Socio inhabilitado por atraso | `diego.acosta@example.com` | `socio123` |
+| Socio con una reserva lista para retirar | `nicolas.romero@example.com` | `socio123` |
+
+Todos los socios de ejemplo usan `socio123`; el email de cada uno se ve en el panel, en
+**Socios**. El administrador se puede cambiar con `ADMIN_EMAIL` y `ADMIN_CONTRASENA` en `.env`
+antes de levantar por primera vez (si ya existe un administrador, no se crea otro).
+
+### Probar el registro de un socio
+
+1. En http://localhost:3000, **Hacerme socio** y completar los datos con cualquier email.
+2. Abrir http://localhost:8025: llegó el correo **Confirmá tu email**. Abrirlo y tocar el botón.
+3. Ingresar como administrador: la campana muestra **Nuevo socio para aprobar**. En
+   **Usuarios** → **Por aprobar**, aprobarlo.
+4. En Mailpit llega **Tu cuenta fue aprobada**. Ya se puede ingresar con esa cuenta.
+
+Mailpit no reenvía nada: todo queda en esa bandeja, sea cual sea el email. Para que los correos
+lleguen de verdad, ver [Mandar correos reales con Gmail](#mandar-correos-reales-con-gmail).
 
 Para trabajar en el código del frontend con recarga automática, ver
 [frontend/README.md](../frontend/README.md).
@@ -105,6 +132,7 @@ Usan una base separada (`biblioteca_test`), así que no tocan los datos cargados
 | Reconstruir solo el frontend | `docker compose up --build -d web` |
 | Actualizar después de un `git pull` | ver [Actualizar a una versión nueva](#actualizar-a-una-versión-nueva) |
 | Borrar la base y empezar de cero | `docker compose down -v` y después levantar y cargar el seed de nuevo |
+| Vaciar la bandeja de Mailpit | Botón **Delete all** en http://localhost:8025 |
 | Abrir una consola de la base | `docker compose exec db psql -U biblioteca` (salir con `\q`) |
 
 ## Actualizar a una versión nueva
@@ -134,6 +162,10 @@ docker compose exec api python -m app.seed
 ```
 
 > `-v` borra **todos** los datos cargados. Usarlo solo si no hay nada que conservar.
+
+> **Al pasar a la versión con usuarios** conviene empezar con la base limpia. Si se conserva
+> una base cargada antes, las tablas nuevas se crean igual y se crea el administrador, pero los
+> socios de ejemplo no tienen cuenta (el seed no vuelve a correr sobre una base con datos).
 
 Si después de actualizar algo se ve raro (por ejemplo, una pantalla vieja), forzar una
 reconstrucción completa con `docker compose build --no-cache` y luego `docker compose up -d`. En el
@@ -204,7 +236,44 @@ la API al compilarse). El sistema queda en `http://localhost:3001` y la API en
 `http://localhost:8001`.
 
 Si se cambia `WEB_PORT`, hay que agregar ese puerto a `CORS_ORIGENES`: si no, el navegador bloquea
-las llamadas del frontend a la API.
+las llamadas del frontend a la API. También cambiar `URL_FRONTEND` (por ejemplo,
+`http://localhost:3001`), que es la dirección de los enlaces de los correos.
+
+## Mandar correos reales con Gmail
+
+Por defecto los correos van a Mailpit. Para la demostración se pueden mandar desde una cuenta de
+Gmail. Gmail no acepta la contraseña normal de la cuenta: hay que crear una **contraseña de
+aplicación**.
+
+1. En la cuenta de Google, activar la **verificación en dos pasos** (es requisito).
+2. Entrar a https://myaccount.google.com/apppasswords, escribir un nombre (por ejemplo,
+   "Biblioteca") y **Crear**. Google muestra una contraseña de 16 letras: copiarla (no se vuelve
+   a mostrar).
+3. Crear el `.env` (`Copy-Item .env.example .env`) y completar, sin espacios en la contraseña:
+
+   ```
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PUERTO=587
+   SMTP_TLS=true
+   SMTP_USUARIO=tu.cuenta@gmail.com
+   SMTP_CONTRASENA=abcdefghijklmnop
+   CORREO_REMITENTE=Red de Bibliotecas <tu.cuenta@gmail.com>
+   ```
+
+4. `docker compose up -d` (no hace falta `--build`: son variables de la API).
+5. Registrar un socio con un email real y seguir los pasos de
+   [Probar el registro de un socio](#probar-el-registro-de-un-socio): el correo llega a esa
+   casilla (revisar también *Spam* la primera vez).
+
+Los avisos para el administrador van al email del administrador. El de ejemplo
+(`admin@example.com`) no existe, así que esos correos rebotan y Gmail avisa del rebote en la
+cuenta que envía. Para recibirlos, crear en **Usuarios** → **Nuevo administrador** uno con un
+email real (o poner `ADMIN_EMAIL` real antes de levantar la base por primera vez).
+
+> El `.env` tiene la contraseña de aplicación: **no subirlo a GitHub** (ya está en
+> `.gitignore`). Si se filtra, borrarla desde la misma página de Google.
+
+Para volver a Mailpit, borrar esas líneas del `.env` y `docker compose up -d`.
 
 ## Problemas frecuentes
 
@@ -214,6 +283,9 @@ las llamadas del frontend a la API.
 | `Bind for 0.0.0.0:5432 failed: port is already allocated` (o 8000) | Otro programa usa ese puerto. Ver [Cambiar puertos](#cambiar-puertos). |
 | La API se reinicia o no arranca y el log dice `exec docker/entrypoint.sh: no such file or directory` o `\r: not found` | El script quedó con finales de línea de Windows. El repo ya lo evita con `.gitattributes`; si se clonó antes de ese cambio, ejecutar `git rm --cached -r .`, `git reset --hard` y volver a levantar con `--build`. |
 | El frontend carga pero todas las pantallas dicen "No se pudo conectar con el servidor" | La API no está corriendo (`docker compose ps`), o el puerto del frontend no está en `CORS_ORIGENES` (en la consola del navegador, `F12`, aparece un error de CORS). Ver [Cambiar puertos](#cambiar-puertos). |
+| No llegan los correos a Gmail | `docker compose logs api` muestra el error. `Username and Password not accepted`: la contraseña no es la de aplicación o tiene espacios. Si no hay error, revisar *Spam*. |
+| El enlace del correo abre una página que no carga | `URL_FRONTEND` no coincide con la dirección del frontend (por ejemplo, se cambió `WEB_PORT`). |
+| "Tu cuenta está esperando la aprobación" | Un administrador tiene que aprobarla en **Usuarios** → **Por aprobar**. |
 | El seed dice "La base ya tiene datos" | Es normal si ya se cargó. Para empezar de cero: `docker compose down -v`, `docker compose up -d` y el seed de nuevo. |
 | Cambié código y no se ve el cambio | La API corre desde la imagen construida. Volver a levantar con `docker compose up --build -d`. |
 

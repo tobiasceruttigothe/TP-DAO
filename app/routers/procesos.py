@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.routers.dependencias import SOLO_ADMIN
 from app.schemas.proceso import ResultadoProcesoRespuesta
 from app.services.proceso_service import ProcesoVencimientos
 
-router = APIRouter(prefix="/procesos", tags=["Procesos"])
+router = APIRouter(prefix="/procesos", tags=["Procesos"], dependencies=SOLO_ADMIN)
 
 
 @router.post("/vencimientos", response_model=ResultadoProcesoRespuesta)

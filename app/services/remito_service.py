@@ -8,6 +8,7 @@ from app.exceptions import NoEncontradoError, ReglaNegocioError
 from app.models import Incidencia, Prestamo, Remito
 from app.repositories import IncidenciaRepository, RemitoRepository
 from app.repositories.base import Paginacion, ResultadoPaginado
+from app.services.eventos import ListoParaRetirar, publicador
 from app.services.reserva_service import ReservaService
 
 _INCIDENCIA_POR_ESTADO_FISICO = {
@@ -116,6 +117,7 @@ class RemitoService:
             # Llego a la sede destino: el socio ya puede retirarlo y empieza a correr el plazo.
             remito.prestamo.activar(hoy or date.today(), settings.dias_prestamo)
             ejemplar.cambiar_estado(EstadoEjemplar.PRESTADO)
+            publicador(self.db).publicar(ListoParaRetirar(remito.prestamo))
         else:
             ejemplar.liberar()
             self.db.flush()

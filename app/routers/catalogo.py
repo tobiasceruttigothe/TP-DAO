@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.repositories.base import Paginacion
-from app.routers.dependencias import paginacion
+from app.routers.dependencias import SOLO_ADMIN, paginacion
 from app.domain.enums import EstadoEjemplar
 from app.schemas.paginacion import Pagina
 from app.schemas.libro import (
@@ -17,7 +17,7 @@ from app.schemas.libro import (
 from app.services.catalogo_service import CatalogoService
 
 libros_router = APIRouter(prefix="/libros", tags=["Catalogo"])
-ejemplares_router = APIRouter(prefix="/ejemplares", tags=["Catalogo"])
+ejemplares_router = APIRouter(prefix="/ejemplares", tags=["Catalogo"], dependencies=SOLO_ADMIN)
 
 
 def get_service(db: Session = Depends(get_db)) -> CatalogoService:
@@ -37,13 +37,13 @@ def obtener_libro(libro_id: int, service: CatalogoService = Depends(get_service)
     return service.obtener_libro(libro_id)
 
 
-@libros_router.post("", response_model=LibroRespuesta, status_code=status.HTTP_201_CREATED)
+@libros_router.post("", response_model=LibroRespuesta, status_code=status.HTTP_201_CREATED, dependencies=SOLO_ADMIN)
 def crear_libro(datos: LibroCrear, service: CatalogoService = Depends(get_service)):
     """Alta de libro en el catalogo. El ISBN es unico."""
     return service.crear_libro(datos)
 
 
-@libros_router.put("/{libro_id}", response_model=LibroRespuesta)
+@libros_router.put("/{libro_id}", response_model=LibroRespuesta, dependencies=SOLO_ADMIN)
 def actualizar_libro(libro_id: int, datos: LibroActualizar, service: CatalogoService = Depends(get_service)):
     return service.actualizar_libro(libro_id, datos)
 
@@ -87,3 +87,16 @@ def dar_de_baja_ejemplar(ejemplar_id: int, service: CatalogoService = Depends(ge
 def marcar_reparado(ejemplar_id: int, service: CatalogoService = Depends(get_service)):
     """Vuelve a poner en circulacion un ejemplar que estaba en reparacion."""
     return service.reparar_ejemplar(ejemplar_id)
+
+
+@ejemplares_router.patch("/{ejemplar_id}/extraviado", response_model=EjemplarRespuesta)
+def marcar_extraviado(ejemplar_id: int, service: CatalogoService = Depends(get_service)):
+    """Para un ejemplar que no aparece (por ejemplo, un faltante del inventario)."""
+    return service.marcar_extraviado(ejemplar_id)
+
+
+@ejemplares_router.patch("/{ejemplar_id}/recuperado", response_model=EjemplarRespuesta)
+def marcar_recuperado(ejemplar_id: int, service: CatalogoService = Depends(get_service)):
+    """Un ejemplar que figuraba extraviado aparecio y vuelve a circular."""
+    return service.recuperar(ejemplar_id)
+

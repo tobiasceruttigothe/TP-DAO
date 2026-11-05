@@ -14,6 +14,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 from app.domain.enums import EstadoFisico
+from app.utiles_texto import pesos as _pesos
 
 
 @dataclass
@@ -39,10 +40,6 @@ class ResultadoMulta:
     @property
     def total(self) -> float:
         return round(sum(c.monto for c in self.conceptos), 2)
-
-
-def _pesos(monto: float) -> str:
-    return f"${monto:,.0f}".replace(",", ".")
 
 
 class EstrategiaMulta(ABC):

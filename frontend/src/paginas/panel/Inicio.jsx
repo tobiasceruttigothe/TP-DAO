@@ -54,7 +54,7 @@ export default function Inicio() {
         >
           <Button loading={ejecutando}>Procesar vencimientos</Button>
         </Popconfirm>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navegar('/prestamos/nuevo')}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navegar('/panel/prestamos/nuevo')}>
           Nuevo préstamo
         </Button>
       </Encabezado>
@@ -84,7 +84,7 @@ export default function Inicio() {
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} xl={14}>
-          <Card title="Próximos vencimientos" extra={<a onClick={() => navegar('/prestamos')}>Ver préstamos</a>}>
+          <Card title="Próximos vencimientos" extra={<a onClick={() => navegar('/panel/prestamos')}>Ver préstamos</a>}>
             <Table
               size="small"
               rowKey="prestamo_id"
@@ -101,7 +101,7 @@ export default function Inicio() {
           </Card>
         </Col>
         <Col xs={24} xl={10}>
-          <Card title="En viaje entre sedes" extra={<a onClick={() => navegar('/remitos')}>Ver remitos</a>}>
+          <Card title="En viaje entre sedes" extra={<a onClick={() => navegar('/panel/remitos')}>Ver remitos</a>}>
             <Table
               size="small"
               rowKey="remito"

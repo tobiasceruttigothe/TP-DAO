@@ -3,13 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.repositories.base import Paginacion
-from app.routers.dependencias import paginacion
+from app.routers.dependencias import SOLO_ADMIN, paginacion
 from app.domain.enums import EstadoPrestamo
 from app.schemas.paginacion import Pagina
 from app.schemas.prestamo import DevolucionCrear, PrestamoCrear, PrestamoRespuesta, RemitoRespuesta
 from app.services.prestamo_service import PrestamoService
 
-router = APIRouter(prefix="/prestamos", tags=["Prestamos"])
+router = APIRouter(prefix="/prestamos", tags=["Prestamos"], dependencies=SOLO_ADMIN)
 
 
 def get_service(db: Session = Depends(get_db)) -> PrestamoService:

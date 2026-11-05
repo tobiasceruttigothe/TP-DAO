@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.routers.dependencias import SOLO_ADMIN
 from app.schemas.reporte import (
     DisponibilidadSedeItem,
     LibroSolicitadoItem,
@@ -14,7 +15,7 @@ from app.schemas.reporte import (
 )
 from app.services.reporte_service import ReporteService
 
-router = APIRouter(prefix="/reportes", tags=["Reportes"])
+router = APIRouter(prefix="/reportes", tags=["Reportes"], dependencies=SOLO_ADMIN)
 
 
 def get_service(db: Session = Depends(get_db)) -> ReporteService:
