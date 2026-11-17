@@ -30,7 +30,7 @@ export function Multa({ prestamo }) {
   return (
     <Tooltip title={<DesgloseMulta conceptos={prestamo.desglose_multa} />}>
       <span style={{ cursor: 'help' }}>
-        <Typography.Text type={activo ? 'danger' : undefined} underline>
+        <Typography.Text type={activo ? 'danger' : undefined} underline style={{ whiteSpace: 'nowrap' }}>
           {moneda(prestamo.multa_actual)}
         </Typography.Text>
         {activo && <div style={{ fontSize: 12, color: '#8c8c8c' }}>a la fecha</div>}

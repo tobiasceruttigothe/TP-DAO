@@ -15,6 +15,7 @@ cada endpoint queda disponible en `/docs` (Swagger) y `/redoc` al levantar la AP
 | [Patrones de diseño](docs/patrones-de-diseno.md) | State, Strategy, Repository y Observer con diagramas de clases; por qué se descartaron Singleton y Keycloak |
 | [Arquitectura](docs/arquitectura.md) | Capas, flujo de una petición, seguridad y roles, correo, manejo de errores, decisiones técnicas y despliegue |
 | [Procesos y reglas de negocio](docs/procesos-y-reglas.md) | Cada proceso y validación de la consigna, dónde se implementa y qué test lo cubre |
+| [Manuales de usuario](docs/manuales/README.md) | Guías con capturas para el visitante, el socio y el administrador |
 
 ## Stack
 
