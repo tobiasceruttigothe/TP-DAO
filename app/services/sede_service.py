@@ -28,6 +28,8 @@ class SedeService:
 
     def crear(self, datos: SedeCrear) -> Sede:
         self._validar_nombre_unico(datos.nombre)
+        if self.repo.buscar_por_prefijo(datos.prefijo) is not None:
+            raise DuplicadoError(f"Ya existe una sede con el prefijo {datos.prefijo}")
         sede = self.repo.agregar(Sede(**datos.model_dump(), activa=True))
         self.db.commit()
         return sede

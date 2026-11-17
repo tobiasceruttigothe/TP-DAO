@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import Integer, cast, func, select
 
 from app.domain.enums import EstadoEjemplar
 from app.models import Ejemplar, Sede
@@ -10,6 +10,11 @@ class EjemplarRepository(BaseRepository[Ejemplar]):
 
     def buscar_por_codigo(self, codigo: str) -> Ejemplar | None:
         return self.db.scalar(select(Ejemplar).where(Ejemplar.codigo_inventario == codigo))
+
+    def ultimo_numero(self, prefijo: str) -> int:
+        """Numero mas alto entre los codigos PREFIJO-NNNN (0 si no hay ninguno)."""
+        numero = func.substring(Ejemplar.codigo_inventario, rf"^{prefijo}-(\d+)$")
+        return self.db.scalar(select(func.max(cast(numero, Integer)))) or 0
 
     def listar_filtrado(
         self,

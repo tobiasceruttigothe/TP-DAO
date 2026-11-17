@@ -11,6 +11,8 @@ ENDPOINTS_DEL_PANEL = [
     ("get", "/usuarios"),
     ("get", "/inventarios"),
     ("get", "/ejemplares"),
+    ("get", "/ejemplares/proximo-codigo?sede_id=1"),
+    ("post", "/ejemplares"),
     ("post", "/procesos/vencimientos"),
     ("post", "/sedes"),
     ("post", "/libros"),

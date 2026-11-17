@@ -28,10 +28,17 @@ El libro es la obra (ISBN, título, autor) y el ejemplar es la copia física, co
 de inventario.
 
 - Endpoints: `GET/POST /libros`, `GET/PUT /libros/{id}`, `GET/POST /ejemplares`, `GET /ejemplares/{id}`,
-  `PATCH /ejemplares/{id}/baja`, `PATCH /ejemplares/{id}/reparado`
+  `GET /ejemplares/proximo-codigo?sede_id=`, `PATCH /ejemplares/{id}/baja`, `PATCH /ejemplares/{id}/reparado`
 - Lógica: `CatalogoService`
+- El código de inventario no se escribe: lo asigna el sistema con el prefijo de la sede y el
+  número siguiente al más alto (`CEN-0021`). Una biblioteca compra varias copias juntas, así que
+  se pueden cargar hasta 50 ejemplares iguales (misma sede y estado físico) de una vez; reciben
+  códigos correlativos y se guardan todos o ninguno. Un número dado de baja no se reutiliza.
+- El prefijo de la sede (de 2 a 5 letras, único) se elige al crearla y no se edita, porque ya está
+  impreso en las etiquetas.
 - Un ejemplar solo se puede dar de baja si está disponible o en reparación (no si está prestado o
   viajando).
+- Tests: `tests/test_ejemplares.py`
 
 ### 4. Solicitudes de préstamo local e interbibliotecario
 
@@ -188,7 +195,7 @@ o cargado a mano en la base, se sigue mostrando sin romper la pantalla.
 | No prestar a socios inhabilitados | `SocioService.obtener_habilitado`, usado al prestar y reservar. La inhabilitación puede ser manual (con motivo) o automática por atraso | `test_no_presta_a_socio_inhabilitado`, `test_regla_de_negocio_devuelve_400`, `test_inhabilitado_por_atraso_no_puede_pedir_ni_reservar` |
 | Controlar fechas de vencimiento | `Prestamo.activar` calcula el vencimiento; `PrestamoService` bloquea nuevos préstamos si hay vencidos y cobra multa al devolver tarde | `test_socio_con_prestamo_vencido_no_puede_pedir_otro`, `test_devolucion_con_atraso_genera_multa` |
 | Trazabilidad del remito en todo el trayecto | `Remito.cambiar_estado` registra cada cambio en `movimientos_remito` | `test_recorrido_completo`, `test_circuito_interbibliotecario_completo` |
-| Evitar duplicados (socios, catálogo, ejemplares) | Restricciones `UNIQUE` en la base y verificación previa en cada servicio | `test_duplicados_devuelven_409` |
+| Evitar duplicados (socios, catálogo, ejemplares) | Restricciones `UNIQUE` en la base y verificación previa en cada servicio. Los códigos de ejemplar los genera el sistema, así que no se pueden repetir por error de tipeo | `test_duplicados_devuelven_409`, `test_se_guardan_todos_o_ninguno` |
 | No prestar ejemplares de otra sede que la de origen | `PrestamoService.solicitar` | `test_ejemplar_debe_ser_de_la_sede_origen` |
 | No iniciar préstamos, reservas ni envíos con una sede dada de baja | `SedeService.obtener_activa` al prestar y reservar; `RemitoService.despachar` al iniciar el envío | `test_no_presta_con_sede_dada_de_baja`, `test_no_reserva_en_sede_dada_de_baja`, `test_no_se_despacha_si_la_sede_se_dio_de_baja` |
 

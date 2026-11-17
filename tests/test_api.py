@@ -1,5 +1,5 @@
 def crear_sede(client, nombre):
-    r = client.post("/sedes", json={"nombre": nombre, "direccion": "San Martin 100"})
+    r = client.post("/sedes", json={"nombre": nombre, "prefijo": nombre[:3], "direccion": "San Martin 100"})
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -16,10 +16,10 @@ def crear_libro(client, isbn="9789500000000"):
     return r.json()
 
 
-def crear_ejemplar(client, libro_id, sede_id, codigo="INV-1"):
-    r = client.post("/ejemplares", json={"codigo_inventario": codigo, "libro_id": libro_id, "sede_id": sede_id})
+def crear_ejemplar(client, libro_id, sede_id):
+    r = client.post("/ejemplares", json={"libro_id": libro_id, "sede_id": sede_id})
     assert r.status_code == 201, r.text
-    return r.json()
+    return r.json()[0]
 
 
 def test_health(client):
@@ -28,20 +28,16 @@ def test_health(client):
 
 def test_duplicados_devuelven_409(client):
     crear_sede(client, "Centro")
-    assert client.post("/sedes", json={"nombre": "centro", "direccion": "Otra 1"}).status_code == 409
+    assert client.post("/sedes", json={"nombre": "centro", "prefijo": "OTR", "direccion": "Otra 1"}).status_code == 409
+    assert client.post("/sedes", json={"nombre": "Otra", "prefijo": "cen", "direccion": "Otra 1"}).status_code == 409
 
     crear_socio(client)
     assert client.post(
         "/socios", json={"dni": "30111222", "nombre": "Juan", "apellido": "Diaz", "email": "otro@mail.com"}
     ).status_code == 409
 
-    libro = crear_libro(client)
+    crear_libro(client)
     assert client.post("/libros", json={"isbn": "9789500000000", "titulo": "T", "autor": "Ab"}).status_code == 409
-
-    sede = client.get("/sedes").json()[0]
-    crear_ejemplar(client, libro["id"], sede["id"], codigo="INV-1")
-    r = client.post("/ejemplares", json={"codigo_inventario": "INV-1", "libro_id": libro["id"], "sede_id": sede["id"]})
-    assert r.status_code == 409
 
 
 def test_inexistente_devuelve_404(client):

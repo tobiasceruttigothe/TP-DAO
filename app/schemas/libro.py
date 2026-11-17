@@ -36,11 +36,23 @@ class LibroRespuesta(BaseModel):
     genero: str | None
 
 
+MAXIMO_EJEMPLARES_POR_CARGA = 50
+
+
 class EjemplarCrear(BaseModel):
-    codigo_inventario: texto(1, 30)
+    """El codigo de inventario no se pide: lo asigna el sistema con el prefijo de la sede."""
+
     libro_id: int
     sede_id: int
     estado_fisico: EstadoFisico = EstadoFisico.BUENO
+    cantidad: int = Field(
+        default=1, ge=1, le=MAXIMO_EJEMPLARES_POR_CARGA,
+        description="Cuántos ejemplares iguales se cargan (misma sede y estado físico)",
+    )
+
+
+class ProximoCodigo(BaseModel):
+    codigo: str
 
 
 class EjemplarRespuesta(BaseModel):

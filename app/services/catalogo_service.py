@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.domain.enums import EstadoEjemplar, EstadoFisico
@@ -14,6 +15,10 @@ from app.schemas.libro import (
 )
 from app.services.reserva_service import ReservaService
 from app.services.sede_service import SedeService
+
+
+def codigo_de_inventario(prefijo: str, numero: int) -> str:
+    return f"{prefijo}-{numero:04d}"
 
 
 class CatalogoService:
@@ -72,15 +77,35 @@ class CatalogoService:
             raise NoEncontradoError(f"No existe el ejemplar {ejemplar_id}")
         return ejemplar
 
-    def crear_ejemplar(self, datos: EjemplarCrear) -> Ejemplar:
+    def crear_ejemplares(self, datos: EjemplarCrear) -> list[Ejemplar]:
+        """Da de alta una o varias copias iguales. Los codigos los asigna el sistema, correlativos
+        al ultimo de la sede (CEN-0021, CEN-0022...), y se guardan todas juntas o ninguna."""
         self.obtener_libro(datos.libro_id)
-        SedeService(self.db).obtener_activa(datos.sede_id)
-        if self.ejemplares.buscar_por_codigo(datos.codigo_inventario) is not None:
-            raise DuplicadoError(f"Ya existe un ejemplar con codigo {datos.codigo_inventario}")
-        ejemplar = Ejemplar(**datos.model_dump(), estado=EstadoEjemplar.DISPONIBLE)
-        self.ejemplares.agregar(ejemplar)
-        self.db.commit()
-        return ejemplar
+        sede = SedeService(self.db).obtener_activa(datos.sede_id)
+        primero = self.ejemplares.ultimo_numero(sede.prefijo) + 1
+        nuevos = [
+            Ejemplar(
+                codigo_inventario=codigo_de_inventario(sede.prefijo, numero),
+                libro_id=datos.libro_id,
+                sede_id=sede.id,
+                estado_fisico=datos.estado_fisico,
+                estado=EstadoEjemplar.DISPONIBLE,
+            )
+            for numero in range(primero, primero + datos.cantidad)
+        ]
+        try:
+            for ejemplar in nuevos:
+                self.ejemplares.agregar(ejemplar)
+            self.db.commit()
+        except IntegrityError:
+            # Otra carga en la misma sede tomo esos numeros al mismo tiempo
+            self.db.rollback()
+            raise DuplicadoError("Se cargaron otros ejemplares en esa sede al mismo tiempo. Volvé a intentar")
+        return nuevos
+
+    def proximo_codigo(self, sede_id: int) -> str:
+        sede = SedeService(self.db).obtener(sede_id)
+        return codigo_de_inventario(sede.prefijo, self.ejemplares.ultimo_numero(sede.prefijo) + 1)
 
     def dar_de_baja_ejemplar(self, ejemplar_id: int) -> Ejemplar:
         ejemplar = self.obtener_ejemplar(ejemplar_id)

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Alert, Button, Empty, Select, Space, Spin, Typography } from 'antd'
 import { PrinterOutlined } from '@ant-design/icons'
-import { ejemplaresApi } from '../../api'
+import { ejemplaresApi, librosApi } from '../../api'
 import useListado from '../../hooks/useListado'
 import Encabezado from '../../componentes/Encabezado'
 import CodigoBarras from '../../componentes/CodigoBarras'
@@ -10,7 +11,20 @@ import { opcionesDe } from '../../utiles/estados'
 
 /** Etiquetas con codigo de barras para pegar en los ejemplares y leerlas en el inventario. */
 export default function Etiquetas() {
-  const [filtros, setFiltros] = useState({})
+  // Al terminar de cargar ejemplares se llega con ?libro=&sede= para imprimir esas etiquetas
+  const [parametros] = useSearchParams()
+  const [filtros, setFiltros] = useState(() => ({
+    libro_id: Number(parametros.get('libro')) || undefined,
+    sede_id: Number(parametros.get('sede')) || undefined,
+  }))
+  const [libroFijo, setLibroFijo] = useState()
+
+  useEffect(() => {
+    const libroInicial = Number(parametros.get('libro'))
+    if (!libroInicial) return
+    librosApi.obtener(libroInicial).then((l) => setLibroFijo({ value: l.id, label: `${l.titulo} - ${l.autor}` }))
+  }, [parametros])
+
   const elegido = Boolean(filtros.sede_id || filtros.libro_id)
   const { items, cargando, paginacion } = useListado(elegido ? ejemplaresApi.listar : sinFiltro, filtros, 100)
   const cambiar = (campo) => (valor) => setFiltros((f) => ({ ...f, [campo]: valor }))
@@ -24,8 +38,14 @@ export default function Etiquetas() {
           </Button>
         </Encabezado>
         <Space wrap style={{ marginBottom: 16 }}>
-          <SelectorSede soloActivas={false} style={{ width: 200 }} onChange={cambiar('sede_id')} />
-          <SelectorLibro style={{ width: 300 }} onChange={cambiar('libro_id')} allowClear />
+          <SelectorSede soloActivas={false} style={{ width: 200 }} value={filtros.sede_id} onChange={cambiar('sede_id')} />
+          <SelectorLibro
+            style={{ width: 300 }}
+            value={filtros.libro_id}
+            opcionFija={libroFijo}
+            onChange={cambiar('libro_id')}
+            allowClear
+          />
           <Select allowClear placeholder="Estado" style={{ width: 170 }} options={opcionesDe('ejemplar')} onChange={cambiar('estado')} />
         </Space>
         {paginacion.total > items.length && (
