@@ -66,6 +66,14 @@ export const reglasAnio = [
   },
 ]
 
+// Prefijo de los codigos de inventario de una sede (PrefijoSede en validaciones.py)
+export const normalizarPrefijo = (valor) => (valor ?? '').toUpperCase().trim()
+
+export const reglasPrefijo = [
+  { required: true, message: 'Ingresá el prefijo' },
+  { pattern: /^[A-Z]{2,5}$/, message: 'De 2 a 5 letras, sin números ni tildes' },
+]
+
 export const reglasTexto = (campo, minimo, maximo) => [
   { required: true, whitespace: true, message: `Ingresá ${campo}` },
   { min: minimo, message: `Al menos ${minimo} caracteres` },

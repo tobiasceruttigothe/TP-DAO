@@ -10,6 +10,9 @@ class SedeRepository(BaseRepository[Sede]):
     def buscar_por_nombre(self, nombre: str) -> Sede | None:
         return self.db.scalar(select(Sede).where(func.lower(Sede.nombre) == nombre.lower()))
 
+    def buscar_por_prefijo(self, prefijo: str) -> Sede | None:
+        return self.db.scalar(select(Sede).where(Sede.prefijo == prefijo))
+
     def listar_filtrado(self, activa: bool | None = None) -> list[Sede]:
         consulta = select(Sede).order_by(Sede.nombre)
         if activa is not None:

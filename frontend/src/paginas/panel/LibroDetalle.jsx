@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Button, Card, Col, Descriptions, Form, Input, Modal, Popconfirm, Row, Select, Space, Table } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, Col, Descriptions, Form, InputNumber, Modal, Popconfirm, Row, Select, Space, Table, Tag, Typography } from 'antd'
+import { PlusOutlined, PrinterOutlined } from '@ant-design/icons'
 import { ejemplaresApi, librosApi } from '../../api'
 import useCarga from '../../hooks/useCarga'
 import useListado from '../../hooks/useListado'
@@ -10,8 +10,19 @@ import Encabezado from '../../componentes/Encabezado'
 import EstadoTag from '../../componentes/EstadoTag'
 import { SelectorSede } from '../../componentes/Selectores'
 import { opcionesDe } from '../../utiles/estados'
-import { reglasTexto, validar } from '../../utiles/reglas'
+import { validar } from '../../utiles/reglas'
 import FormularioLibro from './FormularioLibro'
+
+// Mismo tope que MAXIMO_EJEMPLARES_POR_CARGA en app/schemas/libro.py
+const MAXIMO_POR_CARGA = 50
+
+/** "CEN-0021" y 3 -> "CEN-0021 a CEN-0023" */
+function rangoDeCodigos(primero, cantidad) {
+  if (cantidad <= 1) return primero
+  const [, prefijo, numero] = primero.match(/^(.*-)(\d+)$/)
+  const ultimo = String(Number(numero) + cantidad - 1).padStart(numero.length, '0')
+  return `${primero} a ${prefijo}${ultimo}`
+}
 
 export default function LibroDetalle() {
   const { id } = useParams()
@@ -23,8 +34,19 @@ export default function LibroDetalle() {
   const ejemplares = useListado(ejemplaresApi.listar, { libro_id: libroId, estado: filtroEstado })
   const [editando, setEditando] = useState(null)
   const [agregando, setAgregando] = useState(false)
+  const [creados, setCreados] = useState(null) // { sedeId, codigos } de la ultima carga
   const [form] = Form.useForm()
+  const sedeElegida = Form.useWatch('sede_id', form)
+  const cantidad = Form.useWatch('cantidad', form)
+  const [proximoCodigo, setProximoCodigo] = useState(null)
   const { ejecutar, ejecutando } = useAccion()
+
+  // El codigo lo asigna el sistema: se muestra cuales va a recibir antes de confirmar
+  useEffect(() => {
+    setProximoCodigo(null)
+    if (!agregando || !sedeElegida) return
+    ejemplaresApi.proximoCodigo(sedeElegida).then((r) => setProximoCodigo(r.codigo)).catch(() => {})
+  }, [agregando, sedeElegida])
 
   function recargarTodo() {
     ejemplares.recargar()
@@ -39,9 +61,10 @@ export default function LibroDetalle() {
   async function agregarEjemplar() {
     const valores = await validar(form)
     if (!valores) return
-    const ok = await ejecutar(() => ejemplaresApi.crear({ ...valores, libro_id: libroId }), 'Ejemplar agregado')
-    if (ok) {
+    const nuevos = await ejecutar(() => ejemplaresApi.crear({ ...valores, libro_id: libroId }))
+    if (nuevos) {
       setAgregando(false)
+      setCreados({ sedeId: valores.sede_id, codigos: nuevos.map((e) => e.codigo_inventario) })
       recargarTodo()
     }
   }
@@ -165,17 +188,63 @@ export default function LibroDetalle() {
         okText="Agregar"
         forceRender
       >
-        <Form form={form} layout="vertical" initialValues={{ estado_fisico: 'BUENO' }}>
-          <Form.Item name="codigo_inventario" label="Código de inventario" rules={reglasTexto('el código', 1, 30)}>
-            <Input placeholder="CEN-0123" />
-          </Form.Item>
-          <Form.Item name="sede_id" label="Sede" rules={[{ required: true }]}>
+        <Form form={form} layout="vertical" initialValues={{ estado_fisico: 'BUENO', cantidad: 1 }}>
+          <Form.Item name="sede_id" label="Sede" rules={[{ required: true, message: 'Elegí la sede' }]}>
             <SelectorSede />
           </Form.Item>
-          <Form.Item name="estado_fisico" label="Estado físico">
-            <Select options={opcionesDe('fisico').filter((o) => o.value !== 'DESTRUIDO')} />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={14}>
+              <Form.Item name="estado_fisico" label="Estado físico">
+                <Select options={opcionesDe('fisico').filter((o) => o.value !== 'DESTRUIDO')} />
+              </Form.Item>
+            </Col>
+            <Col span={10}>
+              <Form.Item
+                name="cantidad"
+                label="Cantidad"
+                rules={[{ required: true, message: 'Ingresá la cantidad' }]}
+                extra="Todos con la misma sede y estado"
+              >
+                <InputNumber min={1} max={MAXIMO_POR_CARGA} precision={0} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
+        <Alert
+          type="info"
+          showIcon
+          message={
+            proximoCodigo
+              ? `Códigos que se asignan: ${rangoDeCodigos(proximoCodigo, cantidad || 1)}`
+              : 'El código de inventario lo asigna el sistema con el prefijo de la sede.'
+          }
+        />
+      </Modal>
+
+      <Modal
+        title={creados ? `${creados.codigos.length} ejemplar(es) agregado(s)` : ''}
+        open={creados !== null}
+        onCancel={() => setCreados(null)}
+        footer={[
+          <Button key="cerrar" onClick={() => setCreados(null)}>
+            Cerrar
+          </Button>,
+          <Button
+            key="imprimir"
+            type="primary"
+            icon={<PrinterOutlined />}
+            onClick={() => navegar(`/panel/etiquetas?libro=${libroId}&sede=${creados.sedeId}`)}
+          >
+            Imprimir etiquetas
+          </Button>,
+        ]}
+      >
+        <Typography.Paragraph>Códigos asignados (los que van en las etiquetas):</Typography.Paragraph>
+        <Space wrap>
+          {creados?.codigos.map((codigo) => (
+            <Tag key={codigo}>{codigo}</Tag>
+          ))}
+        </Space>
       </Modal>
 
       <FormularioLibro

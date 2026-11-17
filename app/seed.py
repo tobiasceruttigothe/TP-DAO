@@ -34,13 +34,13 @@ from app.services.sede_service import SedeService
 from app.services.socio_service import SocioService
 
 SEDES = [
-    ("CEN", SedeCrear(nombre="Biblioteca Central", direccion="Av. Colón 1200", telefono="3514000001",
+    ("CEN", SedeCrear(prefijo="CEN", nombre="Biblioteca Central", direccion="Av. Colón 1200", telefono="3514000001",
                       email="central@bibliotecas.gob.ar", horario="Lun a Vie 8 a 20, Sab 9 a 13")),
-    ("NOR", SedeCrear(nombre="Sede Norte", direccion="Av. Monseñor Pablo Cabrera 3500", telefono="3514000002",
+    ("NOR", SedeCrear(prefijo="NOR", nombre="Sede Norte", direccion="Av. Monseñor Pablo Cabrera 3500", telefono="3514000002",
                       email="norte@bibliotecas.gob.ar", horario="Lun a Vie 9 a 18")),
-    ("SUR", SedeCrear(nombre="Sede Sur", direccion="Av. Vélez Sarsfield 4100", telefono="3514000003",
+    ("SUR", SedeCrear(prefijo="SUR", nombre="Sede Sur", direccion="Av. Vélez Sarsfield 4100", telefono="3514000003",
                       email="sur@bibliotecas.gob.ar", horario="Lun a Sab 9 a 14")),
-    ("OES", SedeCrear(nombre="Sede Oeste", direccion="Av. Fuerza Aérea 2800", telefono="3514000004",
+    ("OES", SedeCrear(prefijo="OES", nombre="Sede Oeste", direccion="Av. Fuerza Aérea 2800", telefono="3514000004",
                       horario="Lun a Vie 14 a 20")),
 ]
 
@@ -99,18 +99,12 @@ class CargaDeEjemplo:
         self.socios = [SocioService(self.db).crear(datos) for datos in SOCIOS]
         catalogo = CatalogoService(self.db)
         self.libros = [catalogo.crear_libro(datos) for datos in LIBROS]
-        numero = {codigo: 0 for codigo in COPIAS}
+        # Los codigos los asigna el sistema: CEN-0001, CEN-0002, NOR-0001...
         for libro in self.libros:
             for codigo, cantidad in COPIAS.items():
-                for _ in range(cantidad):
-                    numero[codigo] += 1
-                    catalogo.crear_ejemplar(
-                        EjemplarCrear(
-                            codigo_inventario=f"{codigo}-{numero[codigo]:04d}",
-                            libro_id=libro.id,
-                            sede_id=self.sedes[codigo].id,
-                        )
-                    )
+                catalogo.crear_ejemplares(
+                    EjemplarCrear(libro_id=libro.id, sede_id=self.sedes[codigo].id, cantidad=cantidad)
+                )
 
     # --- Ayudas ---
 

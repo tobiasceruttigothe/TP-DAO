@@ -67,6 +67,18 @@ def _validar_telefono(valor: str | None) -> str | None:
     return valor
 
 
+def _normalizar_prefijo(valor):
+    if isinstance(valor, str):
+        return valor.strip().upper()
+    return valor
+
+
+def _validar_prefijo(valor: str) -> str:
+    if not re.fullmatch(r"[A-Z]{2,5}", valor):
+        raise ValueError("debe tener de 2 a 5 letras, sin números ni tildes")
+    return valor
+
+
 def isbn_es_valido(isbn: str) -> bool:
     """ISBN-10 o ISBN-13 con el digito verificador correcto."""
     if re.fullmatch(r"\d{13}", isbn):
@@ -102,6 +114,9 @@ Dni = Annotated[str, BeforeValidator(_quitar_separadores), AfterValidator(_valid
 Telefono = Annotated[str | None, BeforeValidator(_vacio_a_nulo), AfterValidator(_validar_telefono)]
 
 Isbn = Annotated[str, BeforeValidator(_quitar_separadores), AfterValidator(_validar_isbn)]
+
+# Prefijo de los codigos de inventario de una sede: "CEN" -> CEN-0001, CEN-0002...
+PrefijoSede = Annotated[str, BeforeValidator(_normalizar_prefijo), AfterValidator(_validar_prefijo)]
 
 AnioPublicacion = Annotated[int | None, AfterValidator(_validar_anio)]
 

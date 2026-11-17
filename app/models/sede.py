@@ -9,6 +9,8 @@ class Sede(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     nombre = Column(String(100), nullable=False, unique=True)
+    # Prefijo de los codigos de inventario de sus ejemplares. No cambia: ya esta en las etiquetas
+    prefijo = Column(String(5), nullable=False, unique=True)
     direccion = Column(String(200), nullable=False)
     telefono = Column(String(30))
     email = Column(String(120))

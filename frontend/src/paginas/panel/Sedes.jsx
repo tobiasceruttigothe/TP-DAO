@@ -5,7 +5,7 @@ import { sedesApi } from '../../api'
 import useCarga from '../../hooks/useCarga'
 import useAccion from '../../hooks/useAccion'
 import Encabezado from '../../componentes/Encabezado'
-import { reglasTelefono, reglasTexto, soloDigitos, validar } from '../../utiles/reglas'
+import { normalizarPrefijo, reglasPrefijo, reglasTelefono, reglasTexto, soloDigitos, validar } from '../../utiles/reglas'
 
 const FILTROS = { todas: undefined, activas: true, baja: false }
 
@@ -28,6 +28,8 @@ export default function Sedes() {
     const valores = await validar(form)
     if (!valores) return
     const datosSede = { ...valores, email: valores.email || null }
+    // El prefijo solo se elige al crear la sede: ya esta impreso en las etiquetas de sus ejemplares
+    if (edicion.id) delete datosSede.prefijo
     const ok = await ejecutar(
       () => (edicion.id ? sedesApi.actualizar(edicion.id, datosSede) : sedesApi.crear(datosSede)),
       edicion.id ? 'Sede actualizada' : 'Sede creada',
@@ -71,6 +73,7 @@ export default function Sedes() {
         scroll={{ x: true }}
         columns={[
           { title: 'Nombre', dataIndex: 'nombre' },
+          { title: 'Prefijo', dataIndex: 'prefijo', render: (prefijo) => <Tag>{prefijo}</Tag> },
           { title: 'Dirección', dataIndex: 'direccion' },
           { title: 'Teléfono', dataIndex: 'telefono' },
           { title: 'Email', dataIndex: 'email' },
@@ -111,6 +114,19 @@ export default function Sedes() {
         <Form form={form} layout="vertical">
           <Form.Item name="nombre" label="Nombre" rules={reglasTexto('el nombre', 2, 100)}>
             <Input maxLength={100} />
+          </Form.Item>
+          <Form.Item
+            name="prefijo"
+            label="Prefijo de los códigos"
+            rules={edicion?.id ? [] : reglasPrefijo}
+            normalize={normalizarPrefijo}
+            extra={
+              edicion?.id
+                ? 'No se puede cambiar: ya está en las etiquetas de los ejemplares'
+                : 'De 2 a 5 letras. Los ejemplares de la sede se numeran solos: CEN-0001, CEN-0002...'
+            }
+          >
+            <Input maxLength={5} placeholder="CEN" disabled={Boolean(edicion?.id)} style={{ width: 120 }} />
           </Form.Item>
           <Form.Item name="direccion" label="Dirección" rules={reglasTexto('la dirección', 3, 200)}>
             <Input maxLength={200} />

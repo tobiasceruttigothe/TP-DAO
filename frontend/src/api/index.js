@@ -31,6 +31,7 @@ export const librosApi = {
 export const ejemplaresApi = {
   listar: (params) => get('/ejemplares', params),
   crear: (datos) => cliente.post('/ejemplares', datos),
+  proximoCodigo: (sedeId) => get('/ejemplares/proximo-codigo', { sede_id: sedeId }),
   darDeBaja: (id) => cliente.patch(`/ejemplares/${id}/baja`),
   marcarReparado: (id) => cliente.patch(`/ejemplares/${id}/reparado`),
   marcarExtraviado: (id) => cliente.patch(`/ejemplares/${id}/extraviado`),

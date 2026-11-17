@@ -62,7 +62,7 @@ def test_telefono_opcional_y_solo_digitos():
 
 def test_sede_usa_el_mismo_formato_de_telefono():
     with pytest.raises(ValidationError):
-        SedeCrear(nombre="Centro", direccion="Colón 100", telefono="351-400")
+        SedeCrear(nombre="Centro", prefijo="CEN", direccion="Colón 100", telefono="351-400")
 
 
 # --- Libro ---

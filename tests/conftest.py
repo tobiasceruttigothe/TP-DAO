@@ -104,6 +104,16 @@ def isbn_valido(n: int) -> str:
     return base + str((10 - suma % 10) % 10)
 
 
+def prefijo_de(n: int) -> str:
+    """Prefijo de sede distinto para cada n, solo con letras: 1 -> SB, 2 -> SC, 27 -> SBB."""
+    letras = ""
+    while True:
+        n, resto = divmod(n, 26)
+        letras = chr(65 + resto) + letras
+        if n == 0:
+            return "S" + letras
+
+
 class Datos:
     """Atajos para armar escenarios sin repetir codigo en cada test."""
 
@@ -118,7 +128,7 @@ class Datos:
     def sede(self, nombre: str | None = None):
         n = self._n()
         return SedeService(self.db).crear(
-            SedeCrear(nombre=nombre or f"Sede {n}", direccion=f"Calle {n} 123", horario="8 a 20")
+            SedeCrear(nombre=nombre or f"Sede {n}", prefijo=prefijo_de(n), direccion=f"Calle {n} 123", horario="8 a 20")
         )
 
     def socio(self, **kwargs):
@@ -160,10 +170,7 @@ class Datos:
         return usuario
 
     def ejemplar(self, libro, sede):
-        n = self._n()
-        return CatalogoService(self.db).crear_ejemplar(
-            EjemplarCrear(codigo_inventario=f"INV-{n:05d}", libro_id=libro.id, sede_id=sede.id)
-        )
+        return CatalogoService(self.db).crear_ejemplares(EjemplarCrear(libro_id=libro.id, sede_id=sede.id))[0]
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.schemas.validaciones import Telefono, texto, texto_opcional
+from app.schemas.validaciones import PrefijoSede, Telefono, texto, texto_opcional
 
 
 class SedeBase(BaseModel):
@@ -12,11 +12,14 @@ class SedeBase(BaseModel):
 
 
 class SedeCrear(SedeBase):
-    pass
+    prefijo: PrefijoSede = Field(
+        description="De 2 a 5 letras. Encabeza los códigos de sus ejemplares y no se puede cambiar",
+        examples=["CEN"],
+    )
 
 
 class SedeActualizar(SedeBase):
-    pass
+    """Sin prefijo: los codigos ya impresos en las etiquetas dependen de el."""
 
 
 class SedeRespuesta(BaseModel):
@@ -26,6 +29,7 @@ class SedeRespuesta(BaseModel):
 
     id: int
     nombre: str
+    prefijo: str
     direccion: str
     telefono: str | None
     email: str | None

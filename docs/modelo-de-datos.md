@@ -25,6 +25,7 @@ erDiagram
     SEDE {
         int id PK
         string nombre UK
+        string prefijo UK
         string direccion
         string telefono
         string email
@@ -199,6 +200,14 @@ tener varias copias en distintas sedes, y la disponibilidad se calcula por ejemp
 cuando el ejemplar viaja. Dónde está físicamente se deduce del préstamo y del remito. Esto es lo
 que permite validar que "no se prestan ejemplares que no pertenezcan a la sede de origen".
 
+**El código de inventario lo asigna el sistema.** Cada sede tiene un `prefijo` (de 2 a 5 letras)
+y sus ejemplares se numeran `PREFIJO-NNNN`, siguiendo al número más alto ya usado con ese
+prefijo (CEN-0001, CEN-0002...). Como el ejemplar no cambia de sede, el código no cambia nunca y
+es el que va impreso en la etiqueta. Por eso el prefijo se elige al crear la sede y no se puede
+editar. Se pueden cargar varios ejemplares iguales a la vez: reciben números correlativos y se
+guardan todos o ninguno. Si dos cargas simultáneas tomaran el mismo número, la restricción
+`UNIQUE` de `codigo_inventario` rechaza la segunda, que se reintenta.
+
 **El préstamo guarda origen y destino.** En un préstamo local las dos sedes coinciden. En uno
 interbibliotecario, el origen es la sede dueña del ejemplar y el destino es donde lo retira el
 socio. El campo `tipo` se deriva de esa comparación al crearlo.
@@ -246,7 +255,7 @@ estado `BAJA`). Borrarlos rompería el historial de préstamos y los reportes.
 
 | Tabla | Restricción | Para qué |
 |---|---|---|
-| sedes | `nombre` único | Evitar sedes duplicadas |
+| sedes | `nombre` único, `prefijo` único | Evitar sedes duplicadas y que dos sedes generen los mismos códigos de inventario |
 | socios | `dni` único, `email` único | Evitar socios duplicados |
 | libros | `isbn` único | Evitar duplicados en el catálogo |
 | ejemplares | `codigo_inventario` único | Evitar ejemplares duplicados |
@@ -273,6 +282,7 @@ DESTRUIDO se agregó sin migración.
 | `0004` | Secuencia `remitos_numero_seq` para numerar remitos (continúa desde el último existente) |
 | `0005` | Columna `prestamos.detalle_multa`: cómo se compuso la multa al devolver |
 | `0006` | Tablas `usuarios`, `notificaciones`, `pedidos`, `inventarios` e `items_inventario`; columnas `prestamos.aviso_por_vencer` y `aviso_vencido` (en `false` para los préstamos existentes) |
+| `0007` | Columna `sedes.prefijo`. A las sedes existentes se les completa con el prefijo que ya usan sus ejemplares (CEN-0001 → CEN) o, si no tienen, con el nombre (Sede Oeste → OES) |
 
 ## Estados de cada entidad
 

@@ -13,6 +13,7 @@ from app.schemas.libro import (
     LibroActualizar,
     LibroCrear,
     LibroRespuesta,
+    ProximoCodigo,
 )
 from app.services.catalogo_service import CatalogoService
 
@@ -66,15 +67,22 @@ def listar_ejemplares(
     return Pagina[EjemplarRespuesta].desde(service.listar_ejemplares(pag, libro_id, sede_id, estado))
 
 
+@ejemplares_router.get("/proximo-codigo", response_model=ProximoCodigo)
+def proximo_codigo(sede_id: int, service: CatalogoService = Depends(get_service)):
+    """Codigo que recibiria el proximo ejemplar que se cargue en la sede."""
+    return ProximoCodigo(codigo=service.proximo_codigo(sede_id))
+
+
 @ejemplares_router.get("/{ejemplar_id}", response_model=EjemplarRespuesta)
 def obtener_ejemplar(ejemplar_id: int, service: CatalogoService = Depends(get_service)):
     return service.obtener_ejemplar(ejemplar_id)
 
 
-@ejemplares_router.post("", response_model=EjemplarRespuesta, status_code=status.HTTP_201_CREATED)
-def crear_ejemplar(datos: EjemplarCrear, service: CatalogoService = Depends(get_service)):
-    """Alta de un ejemplar fisico en una sede. El codigo de inventario es unico."""
-    return service.crear_ejemplar(datos)
+@ejemplares_router.post("", response_model=list[EjemplarRespuesta], status_code=status.HTTP_201_CREATED)
+def crear_ejemplares(datos: EjemplarCrear, service: CatalogoService = Depends(get_service)):
+    """Alta de uno o varios ejemplares iguales en una sede. El sistema les asigna codigos
+    correlativos con el prefijo de la sede (CEN-0021, CEN-0022...)."""
+    return service.crear_ejemplares(datos)
 
 
 @ejemplares_router.patch("/{ejemplar_id}/baja", response_model=EjemplarRespuesta)
