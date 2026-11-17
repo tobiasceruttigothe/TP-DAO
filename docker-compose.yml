@@ -1,7 +1,10 @@
 services:
   db:
     image: postgres:16-alpine
+    # Zona horaria de la base, incluso si el volumen ya existia (initdb solo la toma al crearlo)
+    command: ["postgres", "-c", "timezone=${TZ:-America/Argentina/Buenos_Aires}"]
     environment:
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
       POSTGRES_USER: biblioteca
       POSTGRES_PASSWORD: biblioteca
       POSTGRES_DB: biblioteca
@@ -19,6 +22,9 @@ services:
   api:
     build: .
     environment:
+      # Las fechas se toman de la hora del contenedor (date.today(), datetime.now()): sin esto
+      # quedarian en UTC, tres horas adelantadas respecto de Argentina
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
       DATABASE_URL: postgresql+psycopg2://biblioteca:biblioteca@db:5432/biblioteca
       TEST_DATABASE_URL: postgresql+psycopg2://biblioteca:biblioteca@db:5432/biblioteca_test
       CORS_ORIGENES: ${CORS_ORIGENES:-http://localhost:3000,http://localhost:5173,http://localhost:4200}
